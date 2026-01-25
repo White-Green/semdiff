@@ -64,8 +64,9 @@ pub trait LeafTraverse {
 
 pub trait NodeTraverse: Sized {
     type Leaf: LeafTraverse;
-    fn name(&self) -> &str;
     type TraverseError: Error + Send + 'static;
+    fn name(&self) -> &str;
+    #[allow(clippy::type_complexity)]
     fn children(
         &mut self,
     ) -> Result<impl Iterator<Item = Result<TraversalNode<Self, Self::Leaf>, Self::TraverseError>>, Self::TraverseError>;
