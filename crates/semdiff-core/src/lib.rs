@@ -66,7 +66,9 @@ pub trait NodeTraverse: Sized {
     type Leaf: LeafTraverse;
     fn name(&self) -> &str;
     type TraverseError: Error + Send + 'static;
-    fn children(&mut self) -> impl Iterator<Item = Result<TraversalNode<Self, Self::Leaf>, Self::TraverseError>>;
+    fn children(
+        &mut self,
+    ) -> Result<impl Iterator<Item = Result<TraversalNode<Self, Self::Leaf>, Self::TraverseError>>, Self::TraverseError>;
 }
 
 pub trait Diff {
@@ -166,10 +168,18 @@ where
     }
 }
 
+pub trait Reporter {
+    type Error: Error + Send + 'static;
+    fn start(&self) -> Result<(), Self::Error>;
+    fn finish(&self) -> Result<(), Self::Error>;
+}
+
 #[derive(Debug, Error)]
-pub enum CalcDiffError<TraverseError> {
+pub enum CalcDiffError<TraverseError, ReporterError> {
     #[error("{0}")]
     TraverseError(#[source] TraverseError),
+    #[error("{0}")]
+    ReporterError(#[source] ReporterError),
     #[error("{0}")]
     DiffError(#[source] Box<dyn Error + Send>),
     #[error("No diff report matched")]
@@ -181,38 +191,43 @@ pub fn calc_diff<N, R>(
     actual: N,
     diff: &[Box<dyn DiffReport<N::Leaf, R>>],
     reporter: R,
-) -> Result<(), CalcDiffError<N::TraverseError>>
+) -> Result<(), CalcDiffError<N::TraverseError, R::Error>>
 where
     N: NodeTraverse,
+    R: Reporter,
 {
-    return calc_diff_inner::<N, R>(&mut Vec::new(), Some(expected), Some(actual), diff, &reporter);
-    fn calc_diff_inner<N, R>(
+    reporter.start().map_err(CalcDiffError::ReporterError)?;
+    calc_diff_inner::<N, R, R::Error>(&mut Vec::new(), Some(expected), Some(actual), diff, &reporter)?;
+    reporter.finish().map_err(CalcDiffError::ReporterError)?;
+    return Ok(());
+    fn calc_diff_inner<N, R, RE>(
         name: &mut Vec<String>,
         expected: Option<N>,
         actual: Option<N>,
         diff: &[Box<dyn DiffReport<N::Leaf, R>>],
         reporter: &R,
-    ) -> Result<(), CalcDiffError<N::TraverseError>>
+    ) -> Result<(), CalcDiffError<N::TraverseError, RE>>
     where
         N: NodeTraverse,
     {
-        let get_diff_report =
-            |expected: Option<&N::Leaf>, actual: Option<&N::Leaf>| -> Result<_, CalcDiffError<N::TraverseError>> {
-                for diff in diff {
-                    if diff.available(expected, actual).map_err(CalcDiffError::DiffError)? {
-                        return Ok(diff);
-                    }
+        let get_diff_report = |expected: Option<&N::Leaf>, actual: Option<&N::Leaf>| {
+            for diff in diff {
+                if diff.available(expected, actual).map_err(CalcDiffError::DiffError)? {
+                    return Ok(diff);
                 }
-                Err(CalcDiffError::NoDiffReportMatched)
-            };
+            }
+            Err(CalcDiffError::<N::TraverseError, RE>::NoDiffReportMatched)
+        };
         match (expected, actual) {
             (Some(mut expected), Some(mut actual)) => {
                 let mut expected = expected
                     .children()
+                    .map_err(CalcDiffError::TraverseError)?
                     .collect::<Result<Vec<_>, _>>()
                     .map_err(CalcDiffError::TraverseError)?;
                 let mut actual = actual
                     .children()
+                    .map_err(CalcDiffError::TraverseError)?
                     .collect::<Result<Vec<_>, _>>()
                     .map_err(CalcDiffError::TraverseError)?;
                 expected.sort_unstable();
@@ -280,7 +295,7 @@ where
                 }
             }
             (Some(mut expected), None) => {
-                for result in expected.children() {
+                for result in expected.children().map_err(CalcDiffError::TraverseError)? {
                     let node = result.map_err(CalcDiffError::TraverseError)?;
                     match node {
                         TraversalNode::Node(node) => {
@@ -299,7 +314,7 @@ where
                 }
             }
             (None, Some(mut actual)) => {
-                for result in actual.children() {
+                for result in actual.children().map_err(CalcDiffError::TraverseError)? {
                     let node = result.map_err(CalcDiffError::TraverseError)?;
                     match node {
                         TraversalNode::Node(node) => {
