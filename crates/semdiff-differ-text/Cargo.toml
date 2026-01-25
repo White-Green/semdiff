@@ -1,0 +1,11 @@
+[package]
+edition = { workspace = true }
+name = "semdiff-differ-text"
+version = { workspace = true }
+
+[dependencies]
+mime = { workspace = true }
+semdiff-core = { workspace = true }
+semdiff-output = { workspace = true }
+semdiff-tree-fs = { workspace = true }
+thiserror = { workspace = true }

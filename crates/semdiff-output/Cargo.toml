@@ -1,0 +1,8 @@
+[package]
+edition = { workspace = true }
+name = "semdiff-output"
+version = { workspace = true }
+
+[dependencies]
+semdiff-core = { workspace = true }
+thiserror = { workspace = true }

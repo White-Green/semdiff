@@ -86,8 +86,8 @@ pub trait DiffCalculator<T> {
 pub trait DetailReporter<Diff, T, Reporter> {
     type Error: Error + Send + 'static;
     fn available(&self, data: &T) -> Result<bool, Self::Error>;
-    fn report_equal(&self, name: &[String], diff: Diff, reporter: &Reporter) -> Result<(), Self::Error>;
-    fn report_diff(&self, name: &[String], diff: Diff, reporter: &Reporter) -> Result<(), Self::Error>;
+    fn report_unchanged(&self, name: &[String], diff: Diff, reporter: &Reporter) -> Result<(), Self::Error>;
+    fn report_modified(&self, name: &[String], diff: Diff, reporter: &Reporter) -> Result<(), Self::Error>;
     fn report_added(&self, name: &[String], data: T, reporter: &Reporter) -> Result<(), Self::Error>;
     fn report_deleted(&self, name: &[String], data: T, reporter: &Reporter) -> Result<(), Self::Error>;
 }
@@ -146,11 +146,11 @@ where
             .map_err(|e| Box::new(e) as Box<dyn Error + Send>)?;
         if diff.equal() {
             self.report
-                .report_equal(name, diff, reporter)
+                .report_unchanged(name, diff, reporter)
                 .map_err(|e| Box::new(e) as Box<dyn Error + Send>)?;
         } else {
             self.report
-                .report_diff(name, diff, reporter)
+                .report_modified(name, diff, reporter)
                 .map_err(|e| Box::new(e) as Box<dyn Error + Send>)?;
         }
         Ok(())
@@ -171,8 +171,8 @@ where
 
 pub trait Reporter {
     type Error: Error + Send + 'static;
-    fn start(&self) -> Result<(), Self::Error>;
-    fn finish(&self) -> Result<(), Self::Error>;
+    fn start(&mut self) -> Result<(), Self::Error>;
+    fn finish(self) -> Result<(), Self::Error>;
 }
 
 #[derive(Debug, Error)]
@@ -191,7 +191,7 @@ pub fn calc_diff<N, R>(
     expected: N,
     actual: N,
     diff: &[Box<dyn DiffReport<N::Leaf, R>>],
-    reporter: R,
+    mut reporter: R,
 ) -> Result<(), CalcDiffError<N::TraverseError, R::Error>>
 where
     N: NodeTraverse,

@@ -1,0 +1,16 @@
+[package]
+edition = { workspace = true }
+name = "semdiff-cli"
+version = { workspace = true }
+
+[[bin]]
+name = "semdiff"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true }
+semdiff-core = { workspace = true }
+semdiff-output = { workspace = true }
+semdiff-tree-fs = { workspace = true }
+semdiff-differ-text = { workspace = true }
+semdiff-differ-binary = { workspace = true }
