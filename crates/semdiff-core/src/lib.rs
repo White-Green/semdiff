@@ -107,6 +107,12 @@ pub struct DiffAndReport<DiffCalculator, DetailReporter> {
     report: DetailReporter,
 }
 
+impl<DiffCalculator, DetailReporter> DiffAndReport<DiffCalculator, DetailReporter> {
+    pub fn new(diff: DiffCalculator, report: DetailReporter) -> Self {
+        Self { diff, report }
+    }
+}
+
 impl<DiffCalculator, DetailReporter> __sealed::Sealed for DiffAndReport<DiffCalculator, DetailReporter> {}
 
 impl<D, R, T, Reporter> DiffReport<T, Reporter> for DiffAndReport<D, R>
@@ -234,9 +240,11 @@ where
                                 name.pop();
                             }
                             (TraversalNode::Leaf(expected), TraversalNode::Leaf(actual)) => {
+                                name.push(expected.name().to_string());
                                 get_diff_report(Some(&expected), Some(&actual))?
                                     .diff(name, expected, actual, reporter)
                                     .map_err(CalcDiffError::DiffError)?;
+                                name.pop();
                             }
                             _ => unreachable!(),
                         },
@@ -247,9 +255,11 @@ where
                                 name.pop();
                             }
                             TraversalNode::Leaf(leaf) => {
+                                name.push(leaf.name().to_string());
                                 get_diff_report(Some(&leaf), None)?
                                     .deleted(name, leaf, reporter)
                                     .map_err(CalcDiffError::DiffError)?;
+                                name.pop();
                             }
                         },
                         (None, Some(actual)) => match actual {
@@ -259,9 +269,11 @@ where
                                 name.pop();
                             }
                             TraversalNode::Leaf(leaf) => {
+                                name.push(leaf.name().to_string());
                                 get_diff_report(None, Some(&leaf))?
                                     .added(name, leaf, reporter)
                                     .map_err(CalcDiffError::DiffError)?;
+                                name.pop();
                             }
                         },
                     }
@@ -277,9 +289,11 @@ where
                             name.pop();
                         }
                         TraversalNode::Leaf(leaf) => {
+                            name.push(leaf.name().to_string());
                             get_diff_report(Some(&leaf), None)?
                                 .deleted(name, leaf, reporter)
                                 .map_err(CalcDiffError::DiffError)?;
+                            name.pop();
                         }
                     }
                 }
@@ -294,9 +308,11 @@ where
                             name.pop();
                         }
                         TraversalNode::Leaf(leaf) => {
+                            name.push(leaf.name().to_string());
                             get_diff_report(None, Some(&leaf))?
                                 .added(name, leaf, reporter)
                                 .map_err(CalcDiffError::DiffError)?;
+                            name.pop();
                         }
                     }
                 }
