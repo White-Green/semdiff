@@ -27,24 +27,56 @@ impl<W> JsonReport<W> {
         }
     }
 
-    pub fn record_unchanged(&self, name: &[String], compares: &'static str, additional: impl Into<BTreeMap<String, Value>>) {
+    pub fn record_unchanged(
+        &self,
+        name: &[String],
+        compares: &'static str,
+        additional: impl Into<BTreeMap<String, Value>>,
+    ) {
         self.unchanged.fetch_add(1, Ordering::Relaxed);
-        self.insert_entry(name, JsonReportEntry::new(JsonEntryStatus::Unchanged, compares, additional.into()));
+        self.insert_entry(
+            name,
+            JsonReportEntry::new(JsonEntryStatus::Unchanged, compares, additional.into()),
+        );
     }
 
-    pub fn record_modified(&self, name: &[String], compares: &'static str, additional: impl Into<BTreeMap<String, Value>>) {
+    pub fn record_modified(
+        &self,
+        name: &[String],
+        compares: &'static str,
+        additional: impl Into<BTreeMap<String, Value>>,
+    ) {
         self.modified.fetch_add(1, Ordering::Relaxed);
-        self.insert_entry(name, JsonReportEntry::new(JsonEntryStatus::Modified, compares, additional.into()));
+        self.insert_entry(
+            name,
+            JsonReportEntry::new(JsonEntryStatus::Modified, compares, additional.into()),
+        );
     }
 
-    pub fn record_added(&self, name: &[String], compares: &'static str, additional: impl Into<BTreeMap<String, Value>>) {
+    pub fn record_added(
+        &self,
+        name: &[String],
+        compares: &'static str,
+        additional: impl Into<BTreeMap<String, Value>>,
+    ) {
         self.added.fetch_add(1, Ordering::Relaxed);
-        self.insert_entry(name, JsonReportEntry::new(JsonEntryStatus::Added, compares, additional.into()));
+        self.insert_entry(
+            name,
+            JsonReportEntry::new(JsonEntryStatus::Added, compares, additional.into()),
+        );
     }
 
-    pub fn record_deleted(&self, name: &[String], compares: &'static str, additional: impl Into<BTreeMap<String, Value>>) {
+    pub fn record_deleted(
+        &self,
+        name: &[String],
+        compares: &'static str,
+        additional: impl Into<BTreeMap<String, Value>>,
+    ) {
         self.deleted.fetch_add(1, Ordering::Relaxed);
-        self.insert_entry(name, JsonReportEntry::new(JsonEntryStatus::Deleted, compares, additional.into()));
+        self.insert_entry(
+            name,
+            JsonReportEntry::new(JsonEntryStatus::Deleted, compares, additional.into()),
+        );
     }
 
     fn insert_entry(&self, name: &[String], entry: JsonReportEntry) {
