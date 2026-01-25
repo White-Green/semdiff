@@ -7,4 +7,10 @@ edition = "2024"
 version = "0.1.0"
 
 [workspace.dependencies]
+semdiff-core = { path = "crates/semdiff-core" }
+
+infer = "0.19.0"
+memmap2 = "0.9.9"
+mime = "0.3.17"
+mime_guess = "2.0.5"
 thiserror = "2.0.18"

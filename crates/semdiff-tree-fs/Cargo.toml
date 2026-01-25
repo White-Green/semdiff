@@ -1,0 +1,12 @@
+[package]
+edition = { workspace = true }
+name = "semdiff-tree-fs"
+version = { workspace = true }
+
+[dependencies]
+infer = { workspace = true }
+memmap2 = { workspace = true }
+mime = { workspace = true }
+mime_guess = { workspace = true }
+semdiff-core = { workspace = true }
+thiserror = { workspace = true }
