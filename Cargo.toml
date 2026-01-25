@@ -8,12 +8,12 @@ version = "0.1.0"
 
 [workspace.dependencies]
 semdiff-core = { path = "crates/semdiff-core" }
+semdiff-differ-binary = { path = "crates/semdiff-differ-binary" }
+semdiff-differ-text = { path = "crates/semdiff-differ-text" }
 semdiff-output = { path = "crates/semdiff-output" }
 semdiff-tree-fs = { path = "crates/semdiff-tree-fs" }
-semdiff-differ-text = { path = "crates/semdiff-differ-text" }
-semdiff-differ-binary = { path = "crates/semdiff-differ-binary" }
 
-askama = "0.12.1"
+askama = "0.15.1"
 clap = { features = ["derive"], version = "4.5.32" }
 infer = "0.19.0"
 memmap2 = "0.9.9"
