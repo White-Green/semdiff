@@ -15,6 +15,7 @@ semdiff-tree-fs = { path = "crates/semdiff-tree-fs" }
 
 askama = "0.15.1"
 clap = { features = ["derive"], version = "4.5.32" }
+dashmap = "6.1.0"
 infer = "0.19.0"
 memmap2 = "0.9.9"
 mime = "0.3.17"

@@ -2,31 +2,39 @@ use crate::{BinaryDiff, BinaryDiffReporter};
 use semdiff_core::DetailReporter;
 use semdiff_output::json::JsonReport;
 use semdiff_tree_fs::FileLeaf;
-use thiserror::Error;
+use std::convert;
 
-#[derive(Debug, Error)]
-pub enum BinaryDiffReportError {}
+const COMPARES_NAME: &'static str = "binary";
 
 impl<W> DetailReporter<BinaryDiff, FileLeaf, JsonReport<W>> for BinaryDiffReporter {
-    type Error = BinaryDiffReportError;
+    type Error = convert::Infallible;
 
     fn available(&self, _data: &FileLeaf) -> Result<bool, Self::Error> {
         Ok(true)
     }
 
-    fn report_unchanged(&self, _name: &[String], _diff: BinaryDiff, _reporter: &JsonReport<W>) -> Result<(), Self::Error> {
-        todo!()
+    fn report_unchanged(
+        &self,
+        name: &[String],
+        _diff: BinaryDiff,
+        reporter: &JsonReport<W>,
+    ) -> Result<(), Self::Error> {
+        reporter.record_unchanged(name, COMPARES_NAME, []);
+        Ok(())
     }
 
-    fn report_modified(&self, _name: &[String], _diff: BinaryDiff, _reporter: &JsonReport<W>) -> Result<(), Self::Error> {
-        todo!()
+    fn report_modified(&self, name: &[String], _diff: BinaryDiff, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+        reporter.record_modified(name, COMPARES_NAME, []);
+        Ok(())
     }
 
-    fn report_added(&self, _name: &[String], _data: FileLeaf, _reporter: &JsonReport<W>) -> Result<(), Self::Error> {
-        todo!()
+    fn report_added(&self, name: &[String], _data: FileLeaf, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+        reporter.record_added(name, COMPARES_NAME, []);
+        Ok(())
     }
 
-    fn report_deleted(&self, _name: &[String], _data: FileLeaf, _reporter: &JsonReport<W>) -> Result<(), Self::Error> {
-        todo!()
+    fn report_deleted(&self, name: &[String], _data: FileLeaf, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+        reporter.record_deleted(name, COMPARES_NAME, []);
+        Ok(())
     }
 }
