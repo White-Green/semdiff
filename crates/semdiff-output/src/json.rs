@@ -27,12 +27,7 @@ impl<W> JsonReport<W> {
         }
     }
 
-    pub fn record_unchanged(
-        &self,
-        name: &[String],
-        compares: &'static str,
-        additional: impl Into<BTreeMap<String, Value>>,
-    ) {
+    pub fn record_unchanged(&self, name: &str, compares: &'static str, additional: impl Into<BTreeMap<String, Value>>) {
         self.unchanged.fetch_add(1, Ordering::Relaxed);
         self.insert_entry(
             name,
@@ -40,12 +35,7 @@ impl<W> JsonReport<W> {
         );
     }
 
-    pub fn record_modified(
-        &self,
-        name: &[String],
-        compares: &'static str,
-        additional: impl Into<BTreeMap<String, Value>>,
-    ) {
+    pub fn record_modified(&self, name: &str, compares: &'static str, additional: impl Into<BTreeMap<String, Value>>) {
         self.modified.fetch_add(1, Ordering::Relaxed);
         self.insert_entry(
             name,
@@ -53,12 +43,7 @@ impl<W> JsonReport<W> {
         );
     }
 
-    pub fn record_added(
-        &self,
-        name: &[String],
-        compares: &'static str,
-        additional: impl Into<BTreeMap<String, Value>>,
-    ) {
+    pub fn record_added(&self, name: &str, compares: &'static str, additional: impl Into<BTreeMap<String, Value>>) {
         self.added.fetch_add(1, Ordering::Relaxed);
         self.insert_entry(
             name,
@@ -66,12 +51,7 @@ impl<W> JsonReport<W> {
         );
     }
 
-    pub fn record_deleted(
-        &self,
-        name: &[String],
-        compares: &'static str,
-        additional: impl Into<BTreeMap<String, Value>>,
-    ) {
+    pub fn record_deleted(&self, name: &str, compares: &'static str, additional: impl Into<BTreeMap<String, Value>>) {
         self.deleted.fetch_add(1, Ordering::Relaxed);
         self.insert_entry(
             name,
@@ -79,8 +59,8 @@ impl<W> JsonReport<W> {
         );
     }
 
-    fn insert_entry(&self, name: &[String], entry: JsonReportEntry) {
-        let key = join_name(name);
+    fn insert_entry(&self, name: &str, entry: JsonReportEntry) {
+        let key = name.to_owned();
         assert!(self.entries.insert(key, entry).is_none());
     }
 }
@@ -119,17 +99,6 @@ enum JsonEntryStatus {
     Modified,
     Added,
     Deleted,
-}
-
-fn join_name(name: &[String]) -> String {
-    let Some((first, tail)) = name.split_first() else {
-        return String::new();
-    };
-    tail.iter().fold(first.clone(), |mut acc, item| {
-        acc.push('/');
-        acc.push_str(&item);
-        acc
-    })
 }
 
 impl<W: Write> Reporter for JsonReport<W> {

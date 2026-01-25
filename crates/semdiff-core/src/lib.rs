@@ -80,16 +80,16 @@ pub trait DiffCalculator<T> {
     type Error: Error + Send + 'static;
     type Diff: Diff + Send;
     fn available(&self, expected: &T, actual: &T) -> Result<bool, Self::Error>;
-    fn diff(&self, name: &[String], expected: T, actual: T) -> Result<Self::Diff, Self::Error>;
+    fn diff(&self, name: &str, expected: T, actual: T) -> Result<Self::Diff, Self::Error>;
 }
 
 pub trait DetailReporter<Diff, T, Reporter> {
     type Error: Error + Send + 'static;
     fn available(&self, data: &T) -> Result<bool, Self::Error>;
-    fn report_unchanged(&self, name: &[String], diff: Diff, reporter: &Reporter) -> Result<(), Self::Error>;
-    fn report_modified(&self, name: &[String], diff: Diff, reporter: &Reporter) -> Result<(), Self::Error>;
-    fn report_added(&self, name: &[String], data: T, reporter: &Reporter) -> Result<(), Self::Error>;
-    fn report_deleted(&self, name: &[String], data: T, reporter: &Reporter) -> Result<(), Self::Error>;
+    fn report_unchanged(&self, name: &str, diff: Diff, reporter: &Reporter) -> Result<(), Self::Error>;
+    fn report_modified(&self, name: &str, diff: Diff, reporter: &Reporter) -> Result<(), Self::Error>;
+    fn report_added(&self, name: &str, data: T, reporter: &Reporter) -> Result<(), Self::Error>;
+    fn report_deleted(&self, name: &str, data: T, reporter: &Reporter) -> Result<(), Self::Error>;
 }
 
 #[doc(hidden)]
@@ -99,9 +99,9 @@ mod __sealed {
 
 pub trait DiffReport<T, Reporter>: __sealed::Sealed {
     fn available(&self, expected: Option<&T>, actual: Option<&T>) -> Result<bool, Box<dyn Error + Send>>;
-    fn diff(&self, name: &[String], expected: T, actual: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>>;
-    fn added(&self, name: &[String], data: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>>;
-    fn deleted(&self, name: &[String], data: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>>;
+    fn diff(&self, name: &str, expected: T, actual: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>>;
+    fn added(&self, name: &str, data: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>>;
+    fn deleted(&self, name: &str, data: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>>;
 }
 
 #[derive(Debug)]
@@ -139,7 +139,7 @@ where
         }
     }
 
-    fn diff(&self, name: &[String], expected: T, actual: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>> {
+    fn diff(&self, name: &str, expected: T, actual: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>> {
         let diff = self
             .diff
             .diff(name, expected, actual)
@@ -156,13 +156,13 @@ where
         Ok(())
     }
 
-    fn added(&self, name: &[String], data: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>> {
+    fn added(&self, name: &str, data: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>> {
         self.report
             .report_added(name, data, reporter)
             .map_err(|e| Box::new(e) as Box<dyn Error + Send>)
     }
 
-    fn deleted(&self, name: &[String], data: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>> {
+    fn deleted(&self, name: &str, data: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>> {
         self.report
             .report_deleted(name, data, reporter)
             .map_err(|e| Box::new(e) as Box<dyn Error + Send>)
@@ -198,11 +198,25 @@ where
     R: Reporter,
 {
     reporter.start().map_err(CalcDiffError::ReporterError)?;
-    calc_diff_inner::<N, R, R::Error>(&mut Vec::new(), Some(expected), Some(actual), diff, &reporter)?;
+    calc_diff_inner::<N, R, R::Error>(&mut String::new(), Some(expected), Some(actual), diff, &reporter)?;
     reporter.finish().map_err(CalcDiffError::ReporterError)?;
     return Ok(());
+    fn with_appended_name<T, E>(
+        name: &mut String,
+        segment: &str,
+        f: impl FnOnce(&mut String) -> Result<T, E>,
+    ) -> Result<T, E> {
+        let name_len = name.len();
+        if !name.is_empty() {
+            name.push('/');
+        }
+        name.push_str(segment);
+        let result = f(name);
+        name.truncate(name_len);
+        result
+    }
     fn calc_diff_inner<N, R, RE>(
-        name: &mut Vec<String>,
+        name: &mut String,
         expected: Option<N>,
         actual: Option<N>,
         diff: &[Box<dyn DiffReport<N::Leaf, R>>],
@@ -251,45 +265,51 @@ where
                         (None, None) => break,
                         (Some(expected), Some(actual)) => match (expected, actual) {
                             (TraversalNode::Node(expected), TraversalNode::Node(actual)) => {
-                                name.push(expected.name().to_string());
-                                calc_diff_inner(name, Some(expected), Some(actual), diff, reporter)?;
-                                name.pop();
+                                let segment = expected.name().to_owned();
+                                with_appended_name(name, segment.as_str(), |name| {
+                                    calc_diff_inner(name, Some(expected), Some(actual), diff, reporter)
+                                })?;
                             }
                             (TraversalNode::Leaf(expected), TraversalNode::Leaf(actual)) => {
-                                name.push(expected.name().to_string());
-                                get_diff_report(Some(&expected), Some(&actual))?
-                                    .diff(name, expected, actual, reporter)
-                                    .map_err(CalcDiffError::DiffError)?;
-                                name.pop();
+                                let segment = expected.name().to_owned();
+                                with_appended_name(name, segment.as_str(), |name| {
+                                    get_diff_report(Some(&expected), Some(&actual))?
+                                        .diff(name.as_str(), expected, actual, reporter)
+                                        .map_err(CalcDiffError::DiffError)
+                                })?;
                             }
                             _ => unreachable!(),
                         },
                         (Some(expected), None) => match expected {
                             TraversalNode::Node(node) => {
-                                name.push(node.name().to_string());
-                                calc_diff_inner(name, Some(node), None, diff, reporter)?;
-                                name.pop();
+                                let segment = node.name().to_owned();
+                                with_appended_name(name, segment.as_str(), |name| {
+                                    calc_diff_inner(name, Some(node), None, diff, reporter)
+                                })?;
                             }
                             TraversalNode::Leaf(leaf) => {
-                                name.push(leaf.name().to_string());
-                                get_diff_report(Some(&leaf), None)?
-                                    .deleted(name, leaf, reporter)
-                                    .map_err(CalcDiffError::DiffError)?;
-                                name.pop();
+                                let segment = leaf.name().to_owned();
+                                with_appended_name(name, segment.as_str(), |name| {
+                                    get_diff_report(Some(&leaf), None)?
+                                        .deleted(name.as_str(), leaf, reporter)
+                                        .map_err(CalcDiffError::DiffError)
+                                })?;
                             }
                         },
                         (None, Some(actual)) => match actual {
                             TraversalNode::Node(node) => {
-                                name.push(node.name().to_string());
-                                calc_diff_inner(name, None, Some(node), diff, reporter)?;
-                                name.pop();
+                                let segment = node.name().to_owned();
+                                with_appended_name(name, segment.as_str(), |name| {
+                                    calc_diff_inner(name, None, Some(node), diff, reporter)
+                                })?;
                             }
                             TraversalNode::Leaf(leaf) => {
-                                name.push(leaf.name().to_string());
-                                get_diff_report(None, Some(&leaf))?
-                                    .added(name, leaf, reporter)
-                                    .map_err(CalcDiffError::DiffError)?;
-                                name.pop();
+                                let segment = leaf.name().to_owned();
+                                with_appended_name(name, segment.as_str(), |name| {
+                                    get_diff_report(None, Some(&leaf))?
+                                        .added(name.as_str(), leaf, reporter)
+                                        .map_err(CalcDiffError::DiffError)
+                                })?;
                             }
                         },
                     }
@@ -300,16 +320,18 @@ where
                     let node = result.map_err(CalcDiffError::TraverseError)?;
                     match node {
                         TraversalNode::Node(node) => {
-                            name.push(node.name().to_string());
-                            calc_diff_inner(name, Some(node), None, diff, reporter)?;
-                            name.pop();
+                            let segment = node.name().to_owned();
+                            with_appended_name(name, segment.as_str(), |name| {
+                                calc_diff_inner(name, Some(node), None, diff, reporter)
+                            })?;
                         }
                         TraversalNode::Leaf(leaf) => {
-                            name.push(leaf.name().to_string());
-                            get_diff_report(Some(&leaf), None)?
-                                .deleted(name, leaf, reporter)
-                                .map_err(CalcDiffError::DiffError)?;
-                            name.pop();
+                            let segment = leaf.name().to_owned();
+                            with_appended_name(name, segment.as_str(), |name| {
+                                get_diff_report(Some(&leaf), None)?
+                                    .deleted(name.as_str(), leaf, reporter)
+                                    .map_err(CalcDiffError::DiffError)
+                            })?;
                         }
                     }
                 }
@@ -319,16 +341,18 @@ where
                     let node = result.map_err(CalcDiffError::TraverseError)?;
                     match node {
                         TraversalNode::Node(node) => {
-                            name.push(node.name().to_string());
-                            calc_diff_inner(name, Some(node), None, diff, reporter)?;
-                            name.pop();
+                            let segment = node.name().to_owned();
+                            with_appended_name(name, segment.as_str(), |name| {
+                                calc_diff_inner(name, Some(node), None, diff, reporter)
+                            })?;
                         }
                         TraversalNode::Leaf(leaf) => {
-                            name.push(leaf.name().to_string());
-                            get_diff_report(None, Some(&leaf))?
-                                .added(name, leaf, reporter)
-                                .map_err(CalcDiffError::DiffError)?;
-                            name.pop();
+                            let segment = leaf.name().to_owned();
+                            with_appended_name(name, segment.as_str(), |name| {
+                                get_diff_report(None, Some(&leaf))?
+                                    .added(name.as_str(), leaf, reporter)
+                                    .map_err(CalcDiffError::DiffError)
+                            })?;
                         }
                     }
                 }

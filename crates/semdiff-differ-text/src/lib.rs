@@ -32,7 +32,7 @@ impl DiffCalculator<FileLeaf> for TextDiffCalculator {
         Ok(expected_is_text && actual_is_text)
     }
 
-    fn diff(&self, _name: &[String], expected: FileLeaf, actual: FileLeaf) -> Result<Self::Diff, Self::Error> {
+    fn diff(&self, _name: &str, expected: FileLeaf, actual: FileLeaf) -> Result<Self::Diff, Self::Error> {
         Ok(TextDiff {
             equal: <[u8]>::eq(&*expected.content, &*actual.content),
         })

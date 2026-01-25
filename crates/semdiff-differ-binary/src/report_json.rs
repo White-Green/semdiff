@@ -13,27 +13,22 @@ impl<W> DetailReporter<BinaryDiff, FileLeaf, JsonReport<W>> for BinaryDiffReport
         Ok(true)
     }
 
-    fn report_unchanged(
-        &self,
-        name: &[String],
-        _diff: BinaryDiff,
-        reporter: &JsonReport<W>,
-    ) -> Result<(), Self::Error> {
+    fn report_unchanged(&self, name: &str, _diff: BinaryDiff, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
         reporter.record_unchanged(name, COMPARES_NAME, []);
         Ok(())
     }
 
-    fn report_modified(&self, name: &[String], _diff: BinaryDiff, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+    fn report_modified(&self, name: &str, _diff: BinaryDiff, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
         reporter.record_modified(name, COMPARES_NAME, []);
         Ok(())
     }
 
-    fn report_added(&self, name: &[String], _data: FileLeaf, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+    fn report_added(&self, name: &str, _data: FileLeaf, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
         reporter.record_added(name, COMPARES_NAME, []);
         Ok(())
     }
 
-    fn report_deleted(&self, name: &[String], _data: FileLeaf, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+    fn report_deleted(&self, name: &str, _data: FileLeaf, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
         reporter.record_deleted(name, COMPARES_NAME, []);
         Ok(())
     }

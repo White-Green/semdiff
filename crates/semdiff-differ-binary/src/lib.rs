@@ -30,7 +30,7 @@ impl DiffCalculator<FileLeaf> for BinaryDiffCalculator {
         Ok(true)
     }
 
-    fn diff(&self, _name: &[String], expected: FileLeaf, actual: FileLeaf) -> Result<Self::Diff, Self::Error> {
+    fn diff(&self, _name: &str, expected: FileLeaf, actual: FileLeaf) -> Result<Self::Diff, Self::Error> {
         Ok(BinaryDiff {
             equal: <[u8]>::eq(&*expected.content, &*actual.content),
         })

@@ -11,37 +11,22 @@ impl<W> DetailReporter<TextDiff, FileLeaf, SummaryReport<W>> for TextDiffReporte
         Ok(data.kind.type_() == mime::TEXT)
     }
 
-    fn report_unchanged(
-        &self,
-        _name: &[String],
-        _diff: TextDiff,
-        reporter: &SummaryReport<W>,
-    ) -> Result<(), Self::Error> {
+    fn report_unchanged(&self, _name: &str, _diff: TextDiff, reporter: &SummaryReport<W>) -> Result<(), Self::Error> {
         reporter.increment_unchanged();
         Ok(())
     }
 
-    fn report_modified(
-        &self,
-        _name: &[String],
-        _diff: TextDiff,
-        reporter: &SummaryReport<W>,
-    ) -> Result<(), Self::Error> {
+    fn report_modified(&self, _name: &str, _diff: TextDiff, reporter: &SummaryReport<W>) -> Result<(), Self::Error> {
         reporter.increment_modified();
         Ok(())
     }
 
-    fn report_added(&self, _name: &[String], _data: FileLeaf, reporter: &SummaryReport<W>) -> Result<(), Self::Error> {
+    fn report_added(&self, _name: &str, _data: FileLeaf, reporter: &SummaryReport<W>) -> Result<(), Self::Error> {
         reporter.increment_added();
         Ok(())
     }
 
-    fn report_deleted(
-        &self,
-        _name: &[String],
-        _data: FileLeaf,
-        reporter: &SummaryReport<W>,
-    ) -> Result<(), Self::Error> {
+    fn report_deleted(&self, _name: &str, _data: FileLeaf, reporter: &SummaryReport<W>) -> Result<(), Self::Error> {
         reporter.increment_deleted();
         Ok(())
     }

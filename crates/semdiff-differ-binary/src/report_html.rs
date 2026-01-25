@@ -14,19 +14,19 @@ impl DetailReporter<BinaryDiff, FileLeaf, HtmlReport> for BinaryDiffReporter {
         Ok(true)
     }
 
-    fn report_unchanged(&self, _name: &[String], _diff: BinaryDiff, _reporter: &HtmlReport) -> Result<(), Self::Error> {
+    fn report_unchanged(&self, _name: &str, _diff: BinaryDiff, _reporter: &HtmlReport) -> Result<(), Self::Error> {
         todo!()
     }
 
-    fn report_modified(&self, _name: &[String], _diff: BinaryDiff, _reporter: &HtmlReport) -> Result<(), Self::Error> {
+    fn report_modified(&self, _name: &str, _diff: BinaryDiff, _reporter: &HtmlReport) -> Result<(), Self::Error> {
         todo!()
     }
 
-    fn report_added(&self, _name: &[String], _data: FileLeaf, _reporter: &HtmlReport) -> Result<(), Self::Error> {
+    fn report_added(&self, _name: &str, _data: FileLeaf, _reporter: &HtmlReport) -> Result<(), Self::Error> {
         todo!()
     }
 
-    fn report_deleted(&self, _name: &[String], _data: FileLeaf, _reporter: &HtmlReport) -> Result<(), Self::Error> {
+    fn report_deleted(&self, _name: &str, _data: FileLeaf, _reporter: &HtmlReport) -> Result<(), Self::Error> {
         todo!()
     }
 }
