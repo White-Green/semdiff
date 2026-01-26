@@ -1,0 +1,204 @@
+<style>
+    .text-detail-table {
+        width: 100%;
+        border-collapse: collapse;
+        border-spacing: 0;
+        table-layout: fixed;
+        font-size: 13px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .text-detail-table col.line-no {
+        width: 56px;
+    }
+
+    .text-detail-table th,
+    .text-detail-table td {
+        border-left: 1px solid var(--diff-border);
+        border-right: 1px solid var(--diff-border);
+        padding: 0 8px;
+        vertical-align: top;
+        line-height: 1.6;
+        user-select: none;
+    }
+
+    .text-detail-table .cell-text {
+        display: block;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .text-detail-table td.cell-left .cell-text,
+    .text-detail-table td.cell-right .cell-text {
+        user-select: text;
+    }
+
+    .text-detail-table.select-left td.cell-right .cell-text,
+    .text-detail-table.select-right td.cell-left .cell-text {
+        user-select: none;
+    }
+
+    .text-detail-table th {
+        background: var(--diff-header-bg);
+        text-align: left;
+    }
+
+    .text-detail-table th.line-no,
+    .text-detail-table td.line-no {
+        text-align: right;
+        color: var(--diff-line-number-text);
+        background: var(--diff-line-number-bg);
+    }
+
+    .text-detail-table td.same {
+        background: var(--diff-same-bg);
+    }
+
+    .text-detail-table td.added {
+        background: var(--diff-added-bg);
+    }
+
+    .text-detail-table td.deleted {
+        background: var(--diff-deleted-bg);
+    }
+
+    .text-detail-table td.empty {
+        background: var(--diff-empty-bg);
+    }
+</style>
+<table class="text-detail-table">
+    <colgroup>
+        <col class="line-no"/>
+        <col/>
+        {% if detail.is_multicolumn() %}
+        <col class="line-no"/>
+        <col/>
+        {% endif %}
+    </colgroup>
+    <thead>
+    <tr>
+        {% match detail %}
+        {% when TextDetailBody::Diff with { .. } %}
+        <th class="line-no">Line</th>
+        <th>expected</th>
+        <th class="line-no">Line</th>
+        <th>actual</th>
+        {% when TextDetailBody::Single with { label, .. } %}
+        <th class="line-no">Line</th>
+        <th>{{ label }}</th>
+        {% endmatch %}
+    </tr>
+    </thead>
+    <tbody>
+    {% match detail %}
+    {% when TextDetailBody::Diff with { lines } %}
+    {% let mut expected_index = 1usize.. %}
+    {% let mut actual_index = 1usize.. %}
+    {% for change in lines.iter_all_changes() %}
+    <tr>
+        {% match change.tag() %}
+        {% when similar::ChangeTag::Equal %}
+        <td class="line-no">{{ expected_index.next().unwrap() }}</td>
+        <td class="cell-left same"><span class="cell-text">{{ change.to_string_lossy() }}</span></td>
+        <td class="line-no">{{ actual_index.next().unwrap() }}</td>
+        <td class="cell-right same"><span class="cell-text">{{ change.to_string_lossy() }}</span></td>
+        {% when similar::ChangeTag::Delete %}
+        <td class="line-no">{{ expected_index.next().unwrap() }}</td>
+        <td class="cell-left deleted"><span class="cell-text">{{ change.to_string_lossy() }}</span></td>
+        <td class="line-no"></td>
+        <td class="cell-right empty"><span class="cell-text"></span></td>
+        {% when similar::ChangeTag::Insert %}
+        <td class="line-no"></td>
+        <td class="cell-left empty"><span class="cell-text"></span></td>
+        <td class="line-no">{{ actual_index.next().unwrap() }}</td>
+        <td class="cell-right added"><span class="cell-text">{{ change.to_string_lossy() }}</span></td>
+        {% endmatch %}
+    </tr>
+    {% endfor %}
+    {% when TextDetailBody::Single with { label, body } %}
+    {% for (i, line) in body.lines().enumerate() %}
+    <tr>
+        <td class="line-no">{{ i + 1 }}</td>
+        <td class="cell-left {{ label }}"><span class="cell-text">{{ line }}</span></td>
+    </tr>
+    {% endfor %}
+    {% endmatch %}
+    </tbody>
+</table>
+<script>
+    (() => {
+        const table = document.querySelector(".text-detail-table");
+        if (!table) {
+            return;
+        }
+        const clearSelectionMode = () => {
+            table.classList.remove("select-left", "select-right");
+        };
+        const clearSelectionRanges = () => {
+            const selection = window.getSelection();
+            if (selection) {
+                selection.removeAllRanges();
+            }
+        };
+        let pointerDown = false;
+        let dragged = false;
+        let downSide = null;
+
+        document.addEventListener(
+            "mousedown",
+            (event) => {
+                if (!event.target.closest(".text-detail-table")) {
+                    clearSelectionMode();
+                }
+            },
+            true
+        );
+        table.addEventListener("mousedown", (event) => {
+            const cell = event.target.closest("td");
+            if (!cell) {
+                clearSelectionMode();
+                clearSelectionRanges();
+                return;
+            }
+            pointerDown = true;
+            dragged = false;
+            if (cell.classList.contains("cell-left")) {
+                downSide = "left";
+            } else if (cell.classList.contains("cell-right")) {
+                downSide = "right";
+            } else {
+                downSide = null;
+            }
+            clearSelectionMode();
+            clearSelectionRanges();
+            if (downSide === "left") {
+                table.classList.add("select-left");
+            } else if (downSide === "right") {
+                table.classList.add("select-right");
+            }
+        });
+        table.addEventListener("mousemove", (event) => {
+            if (!pointerDown || dragged) {
+                return;
+            }
+            if (event.buttons !== 0) {
+                dragged = true;
+            }
+        });
+        document.addEventListener(
+            "mouseup",
+            () => {
+                if (!pointerDown) {
+                    return;
+                }
+                pointerDown = false;
+                if (!dragged && downSide) {
+                    clearSelectionRanges();
+                }
+                dragged = false;
+                downSide = null;
+            },
+            true
+        );
+    })();
+</script>

@@ -19,7 +19,6 @@ pub struct FileLeaf {
     pub abs_path: PathBuf,
     pub kind: Mime,
     pub meta: FileMeta,
-    _handle: File,
     pub content: Mmap,
 }
 
@@ -85,8 +84,8 @@ impl NodeTraverse for FsNode {
             if file_type.is_dir() {
                 Ok(TraversalNode::Node(FsNode::new(abs_path, name)))
             } else {
-                let handle = File::open(entry.path()).map_err(FsTreeError::Open)?;
-                let content = unsafe { Mmap::map(&handle) }.map_err(FsTreeError::Open)?;
+                let file = File::open(entry.path()).map_err(FsTreeError::Open)?;
+                let content = unsafe { Mmap::map(&file) }.map_err(FsTreeError::Open)?;
                 let metadata = entry.metadata().map_err(FsTreeError::Metadata)?;
                 let kind = detect_file_kind(&abs_path, &content);
                 let leaf = FileLeaf {
@@ -97,7 +96,6 @@ impl NodeTraverse for FsNode {
                         size: metadata.len(),
                         modified: metadata.modified().ok(),
                     },
-                    _handle: handle,
                     content,
                 };
                 Ok(TraversalNode::Leaf(leaf))

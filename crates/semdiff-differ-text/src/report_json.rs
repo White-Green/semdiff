@@ -4,7 +4,7 @@ use semdiff_output::json::JsonReport;
 use semdiff_tree_fs::FileLeaf;
 use std::convert;
 
-const COMPARES_NAME: &'static str = "text";
+const COMPARES_NAME: &str = "text";
 
 impl<W> DetailReporter<TextDiff, FileLeaf, JsonReport<W>> for TextDiffReporter {
     type Error = convert::Infallible;

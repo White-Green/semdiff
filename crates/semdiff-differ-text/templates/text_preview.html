@@ -1,0 +1,82 @@
+<style>
+    .text-preview {
+        font-size: 12px;
+        width: 100%;
+        height: 100%;
+    }
+
+    .text-preview .panel {
+        padding: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .text-preview pre {
+        margin: 0;
+        font-size: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        overflow: hidden;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .text-preview .line {
+        display: flex;
+        font-size: 12px;
+        padding: 0 4px;
+        border-radius: 0;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.2;
+    }
+
+    .text-preview .line .prefix {
+        flex: 0 0 1.5em;
+        text-align: center;
+        white-space: pre;
+    }
+
+    .text-preview .line .content {
+        flex: 1;
+        min-width: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .text-preview .line.same {
+        background: var(--diff-same-bg);
+    }
+
+    .text-preview .line.added {
+        background: var(--diff-added-bg);
+    }
+
+    .text-preview .line.deleted {
+        background: var(--diff-deleted-bg);
+    }
+</style>
+<div class="text-preview">
+    <div class="panel">
+        {% match body %}
+        {% when TextPreviewBody::Unchanged with { body } %}
+        <pre>{% for line in body.lines() %}<span class="line same"><span class="content">{{ line }}</span></span>{% endfor %}</pre>
+        {% when TextPreviewBody::Modified with { diff } %}
+        <pre>{% for change in (diff.iter_all_changes().skip_while(Self::is_equal).take(10)) %}{% match change.tag() %}{%
+            when similar::ChangeTag::Equal
+            %}<span class="line same"><span class="prefix">{{ "  " }}</span><span class="content">{{ change.to_string_lossy() }}</span></span>{%
+            when similar::ChangeTag::Delete
+            %}<span class="line deleted"><span class="prefix">{{ "- " }}</span><span class="content">{{ change.to_string_lossy() }}</span></span>{%
+            when similar::ChangeTag::Insert
+            %}<span class="line added"><span class="prefix">{{ "+ " }}</span><span class="content">{{ change.to_string_lossy() }}</span></span>{%
+            endmatch %}{% endfor %}</pre>
+        {% when TextPreviewBody::Added with { body } %}
+        <pre>{% for line in body.lines() %}<span class="line added"><span class="prefix">{{ "+ " }}</span><span
+                class="content">{{ line }}</span></span>{% endfor %}</pre>
+        {% when TextPreviewBody::Deleted with { body } %}
+        <pre>{% for line in body.lines() %}<span class="line deleted"><span class="prefix">{{ "- " }}</span><span
+                class="content">{{ line }}</span></span>{% endfor %}</pre>
+        {% endmatch %}
+    </div>
+</div>

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ name }} - semdiff detail</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --color-bg: #f9fafb;
+        --color-text: #1f2937;
+        --color-surface: #ffffff;
+        --color-border: #e5e7eb;
+        --color-muted: #374151;
+        --color-link: #2563eb;
+        --color-shadow: rgba(0,0,0,0.04);
+        --badge-unchanged-bg: #ecfeff;
+        --badge-unchanged-text: #155e75;
+        --badge-unchanged-border: #a5f3fc;
+        --badge-modified-bg: #fffbeb;
+        --badge-modified-text: #92400e;
+        --badge-modified-border: #fde68a;
+        --badge-added-bg: #ecfdf5;
+        --badge-added-text: #065f46;
+        --badge-added-border: #a7f3d0;
+        --badge-deleted-bg: #fef2f2;
+        --badge-deleted-text: #991b1b;
+        --badge-deleted-border: #fecaca;
+        --diff-same-bg: #f9fafb;
+        --diff-added-bg: #ecfdf5;
+        --diff-deleted-bg: #fef2f2;
+        --diff-empty-bg: #ffffff;
+        --diff-line-number-bg: #f9fafb;
+        --diff-line-number-text: #9ca3af;
+        --diff-header-bg: #f3f4f6;
+        --diff-border: #e5e7eb;
+        --warning-bg: #fef3c7;
+        --warning-border: #fde68a;
+        --warning-text: #92400e;
+      }
+      body {
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        margin: 0;
+        padding: 24px;
+        background: var(--color-bg);
+        color: var(--color-text);
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .badge {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid transparent;
+      }
+      .badge.unchanged {
+        background: var(--badge-unchanged-bg);
+        color: var(--badge-unchanged-text);
+        border-color: var(--badge-unchanged-border);
+      }
+      .badge.modified {
+        background: var(--badge-modified-bg);
+        color: var(--badge-modified-text);
+        border-color: var(--badge-modified-border);
+      }
+      .badge.added {
+        background: var(--badge-added-bg);
+        color: var(--badge-added-text);
+        border-color: var(--badge-added-border);
+      }
+      .badge.deleted {
+        background: var(--badge-deleted-bg);
+        color: var(--badge-deleted-text);
+        border-color: var(--badge-deleted-border);
+      }
+      .content {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 10px;
+        padding: 16px;
+        box-shadow: 0 1px 2px var(--color-shadow);
+      }
+      a { color: var(--color-link); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div>
+        <div style="font-size: 18px; font-weight: 600;">{{ name }}</div>
+        <div style="margin-top: 6px;">
+          <span class="badge {{ status_class }}">{{ status_label }}</span>
+          <span class="badge">{{ compares }}</span>
+        </div>
+      </div>
+      <div><a href="{{ back_link }}">一覧へ戻る</a></div>
+    </div>
+    <div class="content">{{ body_html | safe }}</div>
+  </body>
+</html>

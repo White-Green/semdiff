@@ -4,7 +4,7 @@ use semdiff_output::json::JsonReport;
 use semdiff_tree_fs::FileLeaf;
 use std::convert;
 
-const COMPARES_NAME: &'static str = "binary";
+const COMPARES_NAME: &str = "binary";
 
 impl<W> DetailReporter<BinaryDiff, FileLeaf, JsonReport<W>> for BinaryDiffReporter {
     type Error = convert::Infallible;

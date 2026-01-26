@@ -4,6 +4,7 @@ name = "semdiff-differ-binary"
 version = { workspace = true }
 
 [dependencies]
+askama = { workspace = true }
 mime = { workspace = true }
 semdiff-core = { workspace = true }
 semdiff-output = { workspace = true }

@@ -4,6 +4,7 @@ name = "semdiff-output"
 version = { workspace = true }
 
 [dependencies]
+askama = { workspace = true }
 dashmap = { workspace = true }
 semdiff-core = { workspace = true }
 serde = { workspace = true }
