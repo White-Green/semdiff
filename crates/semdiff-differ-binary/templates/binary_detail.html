@@ -72,10 +72,6 @@
 
     {% if detail.is_multicolumn() %}
     @media (max-width: 1024px) {
-        .binary-detail-header {
-            display: none;
-        }
-
         .binary-detail {
             grid-template-columns: max-content max-content minmax(0, 1fr);
         }
@@ -88,6 +84,11 @@
             grid-column: 2;
         }
 
+        .binary-detail .binary-detail-header .binary-detail-cell.header-label {
+            grid-column: 3;
+            color: transparent;
+        }
+
         .binary-detail .cell-left,
         .binary-detail .cell-right {
             grid-column: 3;
@@ -98,8 +99,7 @@
             display: none;
         }
 
-        .binary-detail .cell-left.empty,
-        .binary-detail .cell-right.empty {
+        .binary-detail .empty {
             display: none;
         }
     }
@@ -110,9 +110,9 @@
         {% match detail %}
         {% when BinaryDetailBody::Diff with { .. } %}
         <div class="binary-detail-cell offset">Offset</div>
-        <div class="binary-detail-cell">expected</div>
+        <div class="binary-detail-cell header-label">expected</div>
         <div class="binary-detail-cell offset">Offset</div>
-        <div class="binary-detail-cell">actual</div>
+        <div class="binary-detail-cell header-label">actual</div>
         {% when BinaryDetailBody::Single with { label, .. } %}
         <div class="binary-detail-cell offset">Offset</div>
         <div class="binary-detail-cell">{{ label }}</div>

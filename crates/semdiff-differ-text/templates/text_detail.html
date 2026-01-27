@@ -72,10 +72,6 @@
 
     {% if detail.is_multicolumn() %}
     @media (max-width: 1024px) {
-        .text-detail-header {
-            display: none;
-        }
-
         .text-detail {
             grid-template-columns: max-content max-content minmax(0, 1fr);
         }
@@ -88,6 +84,11 @@
             grid-column: 2;
         }
 
+        .text-detail .text-detail-header .text-detail-cell.header-label {
+            grid-column: 3;
+            color: transparent;
+        }
+
         .text-detail .cell-left,
         .text-detail .cell-right {
             grid-column: 3;
@@ -98,8 +99,7 @@
             display: none;
         }
 
-        .text-detail .cell-left.empty,
-        .text-detail .cell-right.empty {
+        .text-detail .empty {
             display: none;
         }
     }
@@ -110,9 +110,9 @@
         {% match detail %}
         {% when TextDetailBody::Diff with { .. } %}
         <div class="text-detail-cell line-no">Line</div>
-        <div class="text-detail-cell">expected</div>
+        <div class="text-detail-cell header-label">expected</div>
         <div class="text-detail-cell line-no">Line</div>
-        <div class="text-detail-cell">actual</div>
+        <div class="text-detail-cell header-label">actual</div>
         {% when TextDetailBody::Single with { label, .. } %}
         <div class="text-detail-cell line-no">Line</div>
         <div class="text-detail-cell">{{ label }}</div>
