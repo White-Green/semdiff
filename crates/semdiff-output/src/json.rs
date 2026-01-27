@@ -27,35 +27,35 @@ impl<W> JsonReport<W> {
         }
     }
 
-    pub fn record_unchanged(&self, name: &str, compares: &'static str, additional: impl Into<BTreeMap<String, Value>>) {
+    pub fn record_unchanged(&self, name: &str, compares: &'static str, additional: impl Serialize) {
         self.unchanged.fetch_add(1, Ordering::Relaxed);
         self.insert_entry(
             name,
-            JsonReportEntry::new(JsonEntryStatus::Unchanged, compares, additional.into()),
+            JsonReportEntry::new(JsonEntryStatus::Unchanged, compares, additional),
         );
     }
 
-    pub fn record_modified(&self, name: &str, compares: &'static str, additional: impl Into<BTreeMap<String, Value>>) {
+    pub fn record_modified(&self, name: &str, compares: &'static str, additional: impl Serialize) {
         self.modified.fetch_add(1, Ordering::Relaxed);
         self.insert_entry(
             name,
-            JsonReportEntry::new(JsonEntryStatus::Modified, compares, additional.into()),
+            JsonReportEntry::new(JsonEntryStatus::Modified, compares, additional),
         );
     }
 
-    pub fn record_added(&self, name: &str, compares: &'static str, additional: impl Into<BTreeMap<String, Value>>) {
+    pub fn record_added(&self, name: &str, compares: &'static str, additional: impl Serialize) {
         self.added.fetch_add(1, Ordering::Relaxed);
         self.insert_entry(
             name,
-            JsonReportEntry::new(JsonEntryStatus::Added, compares, additional.into()),
+            JsonReportEntry::new(JsonEntryStatus::Added, compares, additional),
         );
     }
 
-    pub fn record_deleted(&self, name: &str, compares: &'static str, additional: impl Into<BTreeMap<String, Value>>) {
+    pub fn record_deleted(&self, name: &str, compares: &'static str, additional: impl Serialize) {
         self.deleted.fetch_add(1, Ordering::Relaxed);
         self.insert_entry(
             name,
-            JsonReportEntry::new(JsonEntryStatus::Deleted, compares, additional.into()),
+            JsonReportEntry::new(JsonEntryStatus::Deleted, compares, additional),
         );
     }
 
@@ -79,11 +79,12 @@ struct JsonReportEntry {
     status: JsonEntryStatus,
     compares: &'static str,
     #[serde(flatten)]
-    additional: BTreeMap<String, Value>,
+    additional: Value,
 }
 
 impl JsonReportEntry {
-    fn new(status: JsonEntryStatus, compares: &'static str, additional: BTreeMap<String, Value>) -> JsonReportEntry {
+    fn new(status: JsonEntryStatus, compares: &'static str, additional: impl Serialize) -> JsonReportEntry {
+        let additional = serde_json::to_value(additional).unwrap();
         JsonReportEntry {
             status,
             compares,

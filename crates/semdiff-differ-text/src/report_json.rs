@@ -1,7 +1,9 @@
-use crate::{TextDiff, TextDiffReporter};
+use crate::{TextDiff, TextDiffReporter, is_text_file};
 use semdiff_core::DetailReporter;
 use semdiff_output::json::JsonReport;
 use semdiff_tree_fs::FileLeaf;
+use serde::Serialize;
+use similar::ChangeTag;
 use std::convert;
 
 const COMPARES_NAME: &str = "text";
@@ -10,26 +12,45 @@ impl<W> DetailReporter<TextDiff, FileLeaf, JsonReport<W>> for TextDiffReporter {
     type Error = convert::Infallible;
 
     fn available(&self, data: &FileLeaf) -> Result<bool, Self::Error> {
-        Ok(data.kind.type_() == mime::TEXT)
+        Ok(is_text_file(&data.kind, &data.content))
     }
 
     fn report_unchanged(&self, name: &str, _diff: TextDiff, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
-        reporter.record_unchanged(name, COMPARES_NAME, []);
+        reporter.record_unchanged(name, COMPARES_NAME, ());
         Ok(())
     }
 
-    fn report_modified(&self, name: &str, _diff: TextDiff, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
-        reporter.record_modified(name, COMPARES_NAME, []);
+    fn report_modified(&self, name: &str, diff: TextDiff, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+        let s = diff
+            .diff()
+            .iter_all_changes()
+            .fold(S::default(), |S { added, deleted }, change| match change.tag() {
+                ChangeTag::Equal => S { added, deleted },
+                ChangeTag::Delete => S {
+                    added,
+                    deleted: deleted + 1,
+                },
+                ChangeTag::Insert => S {
+                    added: added + 1,
+                    deleted,
+                },
+            });
+        #[derive(Debug, Default, Serialize)]
+        struct S {
+            added: usize,
+            deleted: usize,
+        }
+        reporter.record_modified(name, COMPARES_NAME, s);
         Ok(())
     }
 
     fn report_added(&self, name: &str, _data: FileLeaf, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
-        reporter.record_added(name, COMPARES_NAME, []);
+        reporter.record_added(name, COMPARES_NAME, ());
         Ok(())
     }
 
     fn report_deleted(&self, name: &str, _data: FileLeaf, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
-        reporter.record_deleted(name, COMPARES_NAME, []);
+        reporter.record_deleted(name, COMPARES_NAME, ());
         Ok(())
     }
 }

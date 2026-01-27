@@ -1,4 +1,4 @@
-use crate::{TextDiff, TextDiffReporter};
+use crate::{is_text_file, TextDiff, TextDiffReporter};
 use askama::Template;
 use semdiff_core::DetailReporter;
 use semdiff_output::html::{HtmlReport, HtmlReportError};
@@ -67,17 +67,19 @@ impl DetailReporter<TextDiff, FileLeaf, HtmlReport> for TextDiffReporter {
     type Error = TextDiffReportError;
 
     fn available(&self, data: &FileLeaf) -> Result<bool, Self::Error> {
-        Ok(str::from_utf8(&data.content).is_ok())
+        Ok(is_text_file(&data.kind, &data.content))
     }
 
     fn report_unchanged(&self, name: &str, diff: TextDiff, reporter: &HtmlReport) -> Result<(), Self::Error> {
+        let body = String::from_utf8_lossy(&diff.expected);
+        let body = body.as_ref();
         let preview_html = TextPreviewTemplate {
-            body: TextPreviewBody::Unchanged { body: diff.expected() },
+            body: TextPreviewBody::Unchanged { body },
         };
         let detail_html = TextDetailTemplate {
             detail: TextDetailBody::Single {
                 label: "same",
-                body: diff.expected(),
+                body,
             },
         };
         reporter.record_unchanged(name, COMPARES_NAME, preview_html, detail_html)?;

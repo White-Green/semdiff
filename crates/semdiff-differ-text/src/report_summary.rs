@@ -1,4 +1,4 @@
-use crate::{TextDiff, TextDiffReporter};
+use crate::{is_text_file, TextDiff, TextDiffReporter};
 use semdiff_core::DetailReporter;
 use semdiff_output::summary::SummaryReport;
 use semdiff_tree_fs::FileLeaf;
@@ -8,7 +8,7 @@ impl<W> DetailReporter<TextDiff, FileLeaf, SummaryReport<W>> for TextDiffReporte
     type Error = convert::Infallible;
 
     fn available(&self, data: &FileLeaf) -> Result<bool, Self::Error> {
-        Ok(data.kind.type_() == mime::TEXT)
+        Ok(is_text_file(&data.kind, &data.content))
     }
 
     fn report_unchanged(&self, _name: &str, _diff: TextDiff, reporter: &SummaryReport<W>) -> Result<(), Self::Error> {
