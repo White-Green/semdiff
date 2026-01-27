@@ -1,95 +1,123 @@
 <style>
-    .binary-detail-table {
+    .binary-detail {
         width: 100%;
-        border-collapse: collapse;
-        border-spacing: 0;
-        table-layout: fixed;
         font-size: 1rem;
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        display: grid;
+        column-gap: 0;
+        row-gap: 0;
+        {% if detail.is_multicolumn() %}
+        grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
+        {% else %}
+        grid-template-columns: max-content minmax(0, 1fr);
+        {% endif %}
     }
 
-    .binary-detail-table col.offset {
-        width: 5rem;
+    .binary-detail-row {
+        display: grid;
+        grid-template-columns: subgrid;
+        grid-column: 1 / -1;
     }
 
-    .binary-detail-table th,
-    .binary-detail-table td {
+    .binary-detail-cell {
         border-left: 1px solid var(--diff-border);
         border-right: 1px solid var(--diff-border);
         padding: 0 0.5rem;
         vertical-align: top;
         line-height: 1.6;
         user-select: none;
+        box-sizing: border-box;
+        grid-row: 1;
     }
 
-    .binary-detail-table .cell-binary {
-        display: block;
-        white-space: pre-wrap;
-        word-break: break-word;
-    }
-
-    .binary-detail-table td.cell-left .cell-binary,
-    .binary-detail-table td.cell-right .cell-binary {
-        user-select: text;
-    }
-
-    .binary-detail-table.select-left td.cell-right .cell-binary,
-    .binary-detail-table.select-right td.cell-left .cell-binary {
-        user-select: none;
-    }
-
-    .binary-detail-table th {
+    .binary-detail-header .binary-detail-cell {
         background: var(--diff-header-bg);
         text-align: left;
+        font-weight: 600;
     }
 
-    .binary-detail-table th.offset,
-    .binary-detail-table td.offset {
+    .binary-detail-cell.offset {
         text-align: right;
         color: var(--diff-line-number-text);
         background: var(--diff-line-number-bg);
     }
 
-    .binary-detail-table td.same {
+    .binary-detail-cell.same {
         background: var(--diff-same-bg);
     }
 
-    .binary-detail-table td.added {
+    .binary-detail-cell.added {
         background: var(--diff-added-bg);
     }
 
-    .binary-detail-table td.deleted {
+    .binary-detail-cell.deleted {
         background: var(--diff-deleted-bg);
     }
 
-    .binary-detail-table td.empty {
+    .binary-detail-cell.empty {
         background: var(--diff-empty-bg);
     }
+
+    .binary-detail-cell .cell-binary {
+        display: block;
+        white-space: pre-wrap;
+        word-break: break-word;
+        user-select: text;
+    }
+
+    .binary-detail.select-left .cell-right .cell-binary,
+    .binary-detail.select-right .cell-left .cell-binary {
+        user-select: none;
+    }
+
+    {% if detail.is_multicolumn() %}
+    @media (max-width: 1024px) {
+        .binary-detail-header {
+            display: none;
+        }
+
+        .binary-detail {
+            grid-template-columns: max-content max-content minmax(0, 1fr);
+        }
+
+        .binary-detail .binary-detail-cell.offset.expected {
+            grid-column: 1;
+        }
+
+        .binary-detail .binary-detail-cell.offset.actual {
+            grid-column: 2;
+        }
+
+        .binary-detail .cell-left,
+        .binary-detail .cell-right {
+            grid-column: 3;
+            min-width: 0;
+        }
+
+        .binary-detail .cell-right.same {
+            display: none;
+        }
+
+        .binary-detail .cell-left.empty,
+        .binary-detail .cell-right.empty {
+            display: none;
+        }
+    }
+    {% endif %}
 </style>
-<table class="binary-detail-table">
-    <colgroup>
-        <col class="offset"/>
-        <col/>
-        {% if detail.is_multicolumn() %}
-        <col class="offset"/>
-        <col/>
-        {% endif %}
-    </colgroup>
-    <thead>
-    <tr>
+<div class="binary-detail">
+    <div class="binary-detail-row binary-detail-header">
         {% match detail %}
         {% when BinaryDetailBody::Diff with { .. } %}
-        <th class="offset">Offset</th>
-        <th>expected</th>
-        <th class="offset">Offset</th>
-        <th>actual</th>
+        <div class="binary-detail-cell offset">Offset</div>
+        <div class="binary-detail-cell">expected</div>
+        <div class="binary-detail-cell offset">Offset</div>
+        <div class="binary-detail-cell">actual</div>
         {% when BinaryDetailBody::Single with { label, .. } %}
-        <th class="offset">Offset</th>
-        <th>{{ label }}</th>
+        <div class="binary-detail-cell offset">Offset</div>
+        <div class="binary-detail-cell">{{ label }}</div>
         {% endmatch %}
-    </tr>
-    </thead>
-    <tbody>
+    </div>
     {% match detail %}
     {% when BinaryDetailBody::Diff with { expected, actual, diff } %}
     {% let mut expected_index = IncrementUsize::new() %}
@@ -98,59 +126,65 @@
     {% match tag %}
     {% when ChangeTag::Equal %}
     {% for line in chunk.chunks(16) %}
-    <tr>
-        <td class="offset">{{ format_args!("{:08X}", expected_index.incr(line.len())) }}</td>
-        <td class="cell-left same"><span class="cell-binary">{{ self::format_line(line) }}</span></td>
-        <td class="offset">{{ format_args!("{:08X}", actual_index.incr(line.len())) }}</td>
-        <td class="cell-right same"><span class="cell-binary">{{ self::format_line(line) }}</span></td>
-    </tr>
+    <div class="binary-detail-row">
+        <div class="binary-detail-cell offset expected">{{ format_args!("{:08X}", expected_index.incr(line.len())) }}
+        </div>
+        <div class="binary-detail-cell cell-left same"><span class="cell-binary">{{ self::format_line(line) }}</span>
+        </div>
+        <div class="binary-detail-cell offset actual">{{ format_args!("{:08X}", actual_index.incr(line.len())) }}</div>
+        <div class="binary-detail-cell cell-right same"><span class="cell-binary">{{ self::format_line(line) }}</span>
+        </div>
+    </div>
     {% endfor %}
     {% when ChangeTag::Insert %}
     {% for line in chunk.chunks(16) %}
-    <tr>
-        <td class="offset"></td>
-        <td class="cell-left empty"></td>
-        <td class="offset">{{ format_args!("{:08X}", actual_index.incr(line.len())) }}</td>
-        <td class="cell-right added"><span class="cell-binary">{{ self::format_line(line) }}</span></td>
-    </tr>
+    <div class="binary-detail-row">
+        <div class="binary-detail-cell offset expected"></div>
+        <div class="binary-detail-cell cell-left empty"></div>
+        <div class="binary-detail-cell offset actual">{{ format_args!("{:08X}", actual_index.incr(line.len())) }}</div>
+        <div class="binary-detail-cell cell-right added"><span class="cell-binary">{{ self::format_line(line) }}</span>
+        </div>
+    </div>
     {% endfor %}
     {% when ChangeTag::Delete %}
     {% for line in chunk.chunks(16) %}
-    <tr>
-        <td class="offset">{{ format_args!("{:08X}", expected_index.incr(line.len())) }}</td>
-        <td class="cell-left deleted"><span class="cell-binary">{{ self::format_line(line) }}</span></td>
-        <td class="offset"></td>
-        <td class="cell-right empty"></td>
-    </tr>
+    <div class="binary-detail-row">
+        <div class="binary-detail-cell offset expected">{{ format_args!("{:08X}", expected_index.incr(line.len())) }}
+        </div>
+        <div class="binary-detail-cell cell-left deleted"><span class="cell-binary">{{ self::format_line(line) }}</span>
+        </div>
+        <div class="binary-detail-cell offset actual"></div>
+        <div class="binary-detail-cell cell-right empty"></div>
+    </div>
     {% endfor %}
     {% endmatch %}
     {% endfor %}
     {% when BinaryDetailBody::Single with { label, body } %}
     {% for (i, line) in body.chunks(16).enumerate() %}
-    <tr>
-        <td class="offset">{{ format_args!("{:08X}", i * 16) }}</td>
-        <td class="cell-left {{ label }}"><span class="cell-binary">{{ self::format_line(line) }}</span></td>
-    </tr>
+    <div class="binary-detail-row">
+        <div class="binary-detail-cell offset">{{ format_args!("{:08X}", i * 16) }}</div>
+        <div class="binary-detail-cell cell-left {{ label }}"><span
+                class="cell-binary">{{ self::format_line(line) }}</span></div>
+    </div>
     {% endfor %}
     {#
     {% for (i, line) in body.lines().enumerate() %}
-    <tr>
-        <td class="offset">{{ i + 1 }}</td>
-        <td class="cell-left {{ label }}"><span class="cell-binary">{{ line }}</span></td>
-    </tr>
+    <div class="binary-detail-row">
+        <div class="binary-detail-cell offset">{{ i + 1 }}</div>
+        <div class="binary-detail-cell cell-left {{ label }}"><span class="cell-binary">{{ line }}</span></div>
+    </div>
     {% endfor %}
     #}
     {% endmatch %}
-    </tbody>
-</table>
+</div>
 <script>
     (() => {
-        const table = document.querySelector(".binary-detail-table");
-        if (!table) {
+        const detail = document.querySelector(".binary-detail");
+        if (!detail) {
             return;
         }
         const clearSelectionMode = () => {
-            table.classList.remove("select-left", "select-right");
+            detail.classList.remove("select-left", "select-right");
         };
         const clearSelectionRanges = () => {
             const selection = window.getSelection();
@@ -165,14 +199,14 @@
         document.addEventListener(
             "mousedown",
             (event) => {
-                if (!event.target.closest(".binary-detail-table")) {
+                if (!event.target.closest(".binary-detail")) {
                     clearSelectionMode();
                 }
             },
             true
         );
-        table.addEventListener("mousedown", (event) => {
-            const cell = event.target.closest("td");
+        detail.addEventListener("mousedown", (event) => {
+            const cell = event.target.closest(".binary-detail-cell");
             if (!cell) {
                 clearSelectionMode();
                 clearSelectionRanges();
@@ -190,12 +224,12 @@
             clearSelectionMode();
             clearSelectionRanges();
             if (downSide === "left") {
-                table.classList.add("select-left");
+                detail.classList.add("select-left");
             } else if (downSide === "right") {
-                table.classList.add("select-right");
+                detail.classList.add("select-right");
             }
         });
-        table.addEventListener("mousemove", (event) => {
+        detail.addEventListener("mousemove", (event) => {
             if (!pointerDown || dragged) {
                 return;
             }

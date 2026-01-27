@@ -1,138 +1,169 @@
 <style>
-    .text-detail-table {
+    .text-detail {
         width: 100%;
-        border-collapse: collapse;
-        border-spacing: 0;
-        table-layout: fixed;
         font-size: 1rem;
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        display: grid;
+        column-gap: 0;
+        row-gap: 0;
+        {% if detail.is_multicolumn() %}
+        grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
+        {% else %}
+        grid-template-columns: max-content minmax(0, 1fr);
+        {% endif %}
     }
 
-    .text-detail-table col.line-no {
-        width: 3.5rem;
+    .text-detail-row {
+        display: grid;
+        grid-template-columns: subgrid;
+        grid-column: 1 / -1;
     }
 
-    .text-detail-table th,
-    .text-detail-table td {
+    .text-detail-cell {
         border-left: 1px solid var(--diff-border);
         border-right: 1px solid var(--diff-border);
         padding: 0 0.5rem;
         vertical-align: top;
         line-height: 1.6;
         user-select: none;
+        box-sizing: border-box;
+        grid-row: 1;
     }
 
-    .text-detail-table .cell-text {
-        display: block;
-        white-space: pre-wrap;
-        word-break: break-word;
-    }
-
-    .text-detail-table td.cell-left .cell-text,
-    .text-detail-table td.cell-right .cell-text {
-        user-select: text;
-    }
-
-    .text-detail-table.select-left td.cell-right .cell-text,
-    .text-detail-table.select-right td.cell-left .cell-text {
-        user-select: none;
-    }
-
-    .text-detail-table th {
+    .text-detail-header .text-detail-cell {
         background: var(--diff-header-bg);
         text-align: left;
+        font-weight: 600;
     }
 
-    .text-detail-table th.line-no,
-    .text-detail-table td.line-no {
+    .text-detail-cell.line-no {
         text-align: right;
         color: var(--diff-line-number-text);
         background: var(--diff-line-number-bg);
     }
 
-    .text-detail-table td.same {
+    .text-detail-cell.same {
         background: var(--diff-same-bg);
     }
 
-    .text-detail-table td.added {
+    .text-detail-cell.added {
         background: var(--diff-added-bg);
     }
 
-    .text-detail-table td.deleted {
+    .text-detail-cell.deleted {
         background: var(--diff-deleted-bg);
     }
 
-    .text-detail-table td.empty {
+    .text-detail-cell.empty {
         background: var(--diff-empty-bg);
     }
+
+    .text-detail-cell .cell-text {
+        display: block;
+        white-space: pre-wrap;
+        word-break: break-word;
+        user-select: text;
+    }
+
+    .text-detail.select-left .cell-right .cell-text,
+    .text-detail.select-right .cell-left .cell-text {
+        user-select: none;
+    }
+
+    {% if detail.is_multicolumn() %}
+    @media (max-width: 1024px) {
+        .text-detail-header {
+            display: none;
+        }
+
+        .text-detail {
+            grid-template-columns: max-content max-content minmax(0, 1fr);
+        }
+
+        .text-detail .text-detail-cell.line-no.expected {
+            grid-column: 1;
+        }
+
+        .text-detail .text-detail-cell.line-no.actual {
+            grid-column: 2;
+        }
+
+        .text-detail .cell-left,
+        .text-detail .cell-right {
+            grid-column: 3;
+            min-width: 0;
+        }
+
+        .text-detail .cell-right.same {
+            display: none;
+        }
+
+        .text-detail .cell-left.empty,
+        .text-detail .cell-right.empty {
+            display: none;
+        }
+    }
+    {% endif %}
 </style>
-<table class="text-detail-table">
-    <colgroup>
-        <col class="line-no"/>
-        <col/>
-        {% if detail.is_multicolumn() %}
-        <col class="line-no"/>
-        <col/>
-        {% endif %}
-    </colgroup>
-    <thead>
-    <tr>
+<div class="text-detail">
+    <div class="text-detail-row text-detail-header">
         {% match detail %}
         {% when TextDetailBody::Diff with { .. } %}
-        <th class="line-no">Line</th>
-        <th>expected</th>
-        <th class="line-no">Line</th>
-        <th>actual</th>
+        <div class="text-detail-cell line-no">Line</div>
+        <div class="text-detail-cell">expected</div>
+        <div class="text-detail-cell line-no">Line</div>
+        <div class="text-detail-cell">actual</div>
         {% when TextDetailBody::Single with { label, .. } %}
-        <th class="line-no">Line</th>
-        <th>{{ label }}</th>
+        <div class="text-detail-cell line-no">Line</div>
+        <div class="text-detail-cell">{{ label }}</div>
         {% endmatch %}
-    </tr>
-    </thead>
-    <tbody>
+    </div>
     {% match detail %}
     {% when TextDetailBody::Diff with { lines } %}
     {% let mut expected_index = 1usize.. %}
     {% let mut actual_index = 1usize.. %}
     {% for change in lines.iter_all_changes() %}
-    <tr>
+    <div class="text-detail-row">
         {% match change.tag() %}
         {% when similar::ChangeTag::Equal %}
-        <td class="line-no">{{ expected_index.next().unwrap() }}</td>
-        <td class="cell-left same"><span class="cell-text">{{ change.to_string_lossy() }}</span></td>
-        <td class="line-no">{{ actual_index.next().unwrap() }}</td>
-        <td class="cell-right same"><span class="cell-text">{{ change.to_string_lossy() }}</span></td>
+        <div class="text-detail-cell line-no expected">{{ expected_index.next().unwrap() }}</div>
+        <div class="text-detail-cell cell-left same"><span class="cell-text">{{ change.to_string_lossy() }}</span>
+        </div>
+        <div class="text-detail-cell line-no actual">{{ actual_index.next().unwrap() }}</div>
+        <div class="text-detail-cell cell-right same"><span class="cell-text">{{ change.to_string_lossy() }}</span>
+        </div>
         {% when similar::ChangeTag::Delete %}
-        <td class="line-no">{{ expected_index.next().unwrap() }}</td>
-        <td class="cell-left deleted"><span class="cell-text">{{ change.to_string_lossy() }}</span></td>
-        <td class="line-no"></td>
-        <td class="cell-right empty"><span class="cell-text"></span></td>
+        <div class="text-detail-cell line-no expected">{{ expected_index.next().unwrap() }}</div>
+        <div class="text-detail-cell cell-left deleted"><span
+                class="cell-text">{{ change.to_string_lossy() }}</span></div>
+        <div class="text-detail-cell line-no actual"></div>
+        <div class="text-detail-cell cell-right empty"><span class="cell-text"></span></div>
         {% when similar::ChangeTag::Insert %}
-        <td class="line-no"></td>
-        <td class="cell-left empty"><span class="cell-text"></span></td>
-        <td class="line-no">{{ actual_index.next().unwrap() }}</td>
-        <td class="cell-right added"><span class="cell-text">{{ change.to_string_lossy() }}</span></td>
+        <div class="text-detail-cell line-no expected"></div>
+        <div class="text-detail-cell cell-left empty"><span class="cell-text"></span></div>
+        <div class="text-detail-cell line-no actual">{{ actual_index.next().unwrap() }}</div>
+        <div class="text-detail-cell cell-right added"><span class="cell-text">{{ change.to_string_lossy() }}</span>
+        </div>
         {% endmatch %}
-    </tr>
+    </div>
     {% endfor %}
     {% when TextDetailBody::Single with { label, body } %}
     {% for (i, line) in body.lines().enumerate() %}
-    <tr>
-        <td class="line-no">{{ i + 1 }}</td>
-        <td class="cell-left {{ label }}"><span class="cell-text">{{ line }}</span></td>
-    </tr>
+    <div class="text-detail-row">
+        <div class="text-detail-cell line-no">{{ i + 1 }}</div>
+        <div class="text-detail-cell cell-left {{ label }}"><span class="cell-text">{{ line }}</span></div>
+    </div>
     {% endfor %}
     {% endmatch %}
-    </tbody>
-</table>
+</div>
 <script>
     (() => {
-        const table = document.querySelector(".text-detail-table");
-        if (!table) {
+        const detail = document.querySelector(".text-detail");
+        if (!detail) {
             return;
         }
         const clearSelectionMode = () => {
-            table.classList.remove("select-left", "select-right");
+            detail.classList.remove("select-left", "select-right");
         };
         const clearSelectionRanges = () => {
             const selection = window.getSelection();
@@ -147,14 +178,14 @@
         document.addEventListener(
             "mousedown",
             (event) => {
-                if (!event.target.closest(".text-detail-table")) {
+                if (!event.target.closest(".text-detail")) {
                     clearSelectionMode();
                 }
             },
             true
         );
-        table.addEventListener("mousedown", (event) => {
-            const cell = event.target.closest("td");
+        detail.addEventListener("mousedown", (event) => {
+            const cell = event.target.closest(".text-detail-cell");
             if (!cell) {
                 clearSelectionMode();
                 clearSelectionRanges();
@@ -172,12 +203,12 @@
             clearSelectionMode();
             clearSelectionRanges();
             if (downSide === "left") {
-                table.classList.add("select-left");
+                detail.classList.add("select-left");
             } else if (downSide === "right") {
-                table.classList.add("select-right");
+                detail.classList.add("select-right");
             }
         });
-        table.addEventListener("mousemove", (event) => {
+        detail.addEventListener("mousemove", (event) => {
             if (!pointerDown || dragged) {
                 return;
             }
