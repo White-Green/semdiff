@@ -418,10 +418,12 @@ name = "semdiff-differ-binary"
 version = "0.1.0"
 dependencies = [
  "askama",
- "mime",
+ "memmap2",
  "semdiff-core",
  "semdiff-output",
  "semdiff-tree-fs",
+ "serde",
+ "similar",
  "thiserror",
 ]
 
@@ -435,6 +437,7 @@ dependencies = [
  "semdiff-core",
  "semdiff-output",
  "semdiff-tree-fs",
+ "serde",
  "similar",
  "thiserror",
 ]

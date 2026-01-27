@@ -5,8 +5,10 @@ version = { workspace = true }
 
 [dependencies]
 askama = { workspace = true }
-mime = { workspace = true }
+memmap2 = { workspace = true }
 semdiff-core = { workspace = true }
 semdiff-output = { workspace = true }
 semdiff-tree-fs = { workspace = true }
+serde = { workspace = true }
+similar = { workspace = true }
 thiserror = { workspace = true }

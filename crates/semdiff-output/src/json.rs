@@ -45,10 +45,7 @@ impl<W> JsonReport<W> {
 
     pub fn record_added(&self, name: &str, compares: &'static str, additional: impl Serialize) {
         self.added.fetch_add(1, Ordering::Relaxed);
-        self.insert_entry(
-            name,
-            JsonReportEntry::new(JsonEntryStatus::Added, compares, additional),
-        );
+        self.insert_entry(name, JsonReportEntry::new(JsonEntryStatus::Added, compares, additional));
     }
 
     pub fn record_deleted(&self, name: &str, compares: &'static str, additional: impl Serialize) {

@@ -1,4 +1,4 @@
-use crate::{is_text_file, TextDiff, TextDiffReporter};
+use crate::{TextDiff, TextDiffReporter, is_text_file};
 use semdiff_core::DetailReporter;
 use semdiff_output::summary::SummaryReport;
 use semdiff_tree_fs::FileLeaf;
