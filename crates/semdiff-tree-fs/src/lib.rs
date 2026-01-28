@@ -4,6 +4,7 @@ use semdiff_core::{LeafTraverse, NodeTraverse, TraversalNode};
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::SystemTime;
 use thiserror::Error;
 
@@ -13,13 +14,13 @@ pub struct FileMeta {
     pub modified: Option<SystemTime>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FileLeaf {
     pub name: String,
     pub abs_path: PathBuf,
     pub kind: Mime,
     pub meta: FileMeta,
-    pub content: Mmap,
+    pub content: Arc<Mmap>,
 }
 
 impl LeafTraverse for FileLeaf {
@@ -96,7 +97,7 @@ impl NodeTraverse for FsNode {
                         size: metadata.len(),
                         modified: metadata.modified().ok(),
                     },
-                    content,
+                    content: Arc::new(content),
                 };
                 Ok(TraversalNode::Leaf(leaf))
             }

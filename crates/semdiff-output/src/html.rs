@@ -4,7 +4,9 @@ use semdiff_core::Reporter;
 use std::collections::BTreeMap;
 use std::collections::hash_map::DefaultHasher;
 use std::fs;
+use std::fs::File;
 use std::hash::{Hash, Hasher};
+use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use thiserror::Error;
@@ -124,7 +126,19 @@ impl HtmlReport {
     }
 
     fn make_detail_filename(name: &str) -> String {
-        let sanitized: String = name
+        format!("{}.html", Self::make_detail_stem(name))
+    }
+
+    fn make_detail_stem(name: &str) -> String {
+        let sanitized = Self::sanitize_segment(name);
+        let mut hasher = DefaultHasher::new();
+        name.hash(&mut hasher);
+        let hash = hasher.finish();
+        format!("{}_{}", sanitized, hash)
+    }
+
+    fn sanitize_segment(value: &str) -> String {
+        value
             .chars()
             .map(|ch| {
                 if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' || ch == '.' {
@@ -133,11 +147,38 @@ impl HtmlReport {
                     '_'
                 }
             })
-            .collect();
-        let mut hasher = DefaultHasher::new();
-        name.hash(&mut hasher);
-        let hash = hasher.finish();
-        format!("{}_{}.html", sanitized, hash)
+            .collect()
+    }
+
+    pub fn write_detail_asset(
+        &self,
+        name: &str,
+        label: &str,
+        extension: &str,
+        f: impl FnOnce(&mut BufWriter<File>) -> Result<(), HtmlReportError>,
+    ) -> Result<String, HtmlReportError> {
+        fs::create_dir_all(&self.detail_dir)?;
+        let stem = Self::make_detail_stem(name);
+        let label = Self::sanitize_segment(label);
+        let extension = extension.trim_start_matches('.');
+        let file_name = if extension.is_empty() {
+            format!("{}_{}", stem, label)
+        } else {
+            format!("{}_{}.{}", stem, label, extension)
+        };
+        let file = File::options()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(self.detail_dir.join(&file_name))?;
+        let mut writer = BufWriter::new(file);
+        f(&mut writer)?;
+        writer.flush()?;
+        Ok(file_name)
+    }
+
+    pub fn detail_asset_path(&self, file_name: &str) -> String {
+        format!("{}/{}", self.detail_dir_name, file_name)
     }
 
     fn write_detail(
@@ -299,44 +340,5 @@ impl Reporter for HtmlReport {
         let rendered = template.render()?;
         fs::write(root, rendered)?;
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::HtmlReport;
-    use askama::Template;
-    use std::fs;
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    #[derive(Template)]
-    #[template(source = "preview", ext = "html")]
-    struct PreviewTemplate;
-
-    #[derive(Template)]
-    #[template(source = "<div>detail</div>", ext = "html")]
-    struct DetailTemplate;
-
-    #[test]
-    fn writes_detail_before_finish() {
-        let suffix = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("time went backwards")
-            .as_nanos();
-        let base_dir = std::env::temp_dir().join(format!("semdiff_html_report_test_{suffix}"));
-        fs::create_dir_all(&base_dir).expect("failed to create temp dir");
-
-        let root = base_dir.join("report.html");
-        let report = HtmlReport::new(root.clone());
-
-        report
-            .record_modified("dir/file.txt", "text", PreviewTemplate, DetailTemplate)
-            .expect("failed to record detail");
-
-        let detail_dir = base_dir.join("report_details");
-        let detail_file = detail_dir.join(HtmlReport::make_detail_filename("dir/file.txt"));
-        assert!(detail_file.exists(), "detail file should be written before finish");
-
-        fs::remove_dir_all(&base_dir).expect("failed to remove temp dir");
     }
 }

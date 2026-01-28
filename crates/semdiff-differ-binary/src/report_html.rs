@@ -1,6 +1,6 @@
 use crate::{BinaryDiff, BinaryDiffReporter};
 use askama::Template;
-use semdiff_core::DetailReporter;
+use semdiff_core::{DetailReporter, MayUnsupported};
 use semdiff_output::html::{HtmlReport, HtmlReportError};
 use semdiff_tree_fs::FileLeaf;
 use similar::ChangeTag;
@@ -100,11 +100,12 @@ impl BinaryDetailBody<'_> {
 impl DetailReporter<BinaryDiff, FileLeaf, HtmlReport> for BinaryDiffReporter {
     type Error = BinaryDiffReportError;
 
-    fn available(&self, _data: &FileLeaf) -> Result<bool, Self::Error> {
-        Ok(true)
-    }
-
-    fn report_unchanged(&self, name: &str, diff: BinaryDiff, reporter: &HtmlReport) -> Result<(), Self::Error> {
+    fn report_unchanged(
+        &self,
+        name: &str,
+        diff: BinaryDiff,
+        reporter: &HtmlReport,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         let preview_html = BinaryPreviewTemplate {
             body: BinaryPreviewBody::Single {
                 size: diff.expected().len(),
@@ -117,10 +118,15 @@ impl DetailReporter<BinaryDiff, FileLeaf, HtmlReport> for BinaryDiffReporter {
             },
         };
         reporter.record_unchanged(name, COMPARES_NAME, preview_html, detail_html)?;
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 
-    fn report_modified(&self, name: &str, diff: BinaryDiff, reporter: &HtmlReport) -> Result<(), Self::Error> {
+    fn report_modified(
+        &self,
+        name: &str,
+        diff: BinaryDiff,
+        reporter: &HtmlReport,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         let diff_changes = diff.changes();
         let stat = BinaryDiff::stat(&diff_changes);
         let preview_html = BinaryPreviewTemplate {
@@ -139,10 +145,15 @@ impl DetailReporter<BinaryDiff, FileLeaf, HtmlReport> for BinaryDiffReporter {
             },
         };
         reporter.record_modified(name, COMPARES_NAME, preview_html, detail_html)?;
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 
-    fn report_added(&self, name: &str, data: FileLeaf, reporter: &HtmlReport) -> Result<(), Self::Error> {
+    fn report_added(
+        &self,
+        name: &str,
+        data: FileLeaf,
+        reporter: &HtmlReport,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         let preview_html = BinaryPreviewTemplate {
             body: BinaryPreviewBody::Single {
                 size: data.content.len(),
@@ -155,10 +166,15 @@ impl DetailReporter<BinaryDiff, FileLeaf, HtmlReport> for BinaryDiffReporter {
             },
         };
         reporter.record_added(name, COMPARES_NAME, preview_html, detail_html)?;
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 
-    fn report_deleted(&self, name: &str, data: FileLeaf, reporter: &HtmlReport) -> Result<(), Self::Error> {
+    fn report_deleted(
+        &self,
+        name: &str,
+        data: FileLeaf,
+        reporter: &HtmlReport,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         let preview_html = BinaryPreviewTemplate {
             body: BinaryPreviewBody::Single {
                 size: data.content.len(),
@@ -171,6 +187,6 @@ impl DetailReporter<BinaryDiff, FileLeaf, HtmlReport> for BinaryDiffReporter {
             },
         };
         reporter.record_deleted(name, COMPARES_NAME, preview_html, detail_html)?;
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 }

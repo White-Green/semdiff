@@ -1,6 +1,6 @@
 use crate::{TextDiff, TextDiffReporter, is_text_file};
 use askama::Template;
-use semdiff_core::DetailReporter;
+use semdiff_core::{DetailReporter, MayUnsupported};
 use semdiff_output::html::{HtmlReport, HtmlReportError};
 use semdiff_tree_fs::FileLeaf;
 use similar::ChangeTag;
@@ -66,11 +66,12 @@ impl TextDetailBody<'_> {
 impl DetailReporter<TextDiff, FileLeaf, HtmlReport> for TextDiffReporter {
     type Error = TextDiffReportError;
 
-    fn available(&self, data: &FileLeaf) -> Result<bool, Self::Error> {
-        Ok(is_text_file(&data.kind, &data.content))
-    }
-
-    fn report_unchanged(&self, name: &str, diff: TextDiff, reporter: &HtmlReport) -> Result<(), Self::Error> {
+    fn report_unchanged(
+        &self,
+        name: &str,
+        diff: TextDiff,
+        reporter: &HtmlReport,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         let body = String::from_utf8_lossy(&diff.expected);
         let body = body.as_ref();
         let preview_html = TextPreviewTemplate {
@@ -80,10 +81,15 @@ impl DetailReporter<TextDiff, FileLeaf, HtmlReport> for TextDiffReporter {
             detail: TextDetailBody::Single { label: "same", body },
         };
         reporter.record_unchanged(name, COMPARES_NAME, preview_html, detail_html)?;
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 
-    fn report_modified(&self, name: &str, diff: TextDiff, reporter: &HtmlReport) -> Result<(), Self::Error> {
+    fn report_modified(
+        &self,
+        name: &str,
+        diff: TextDiff,
+        reporter: &HtmlReport,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         let diff_view = diff.diff();
         let preview_html = TextPreviewTemplate {
             body: TextPreviewBody::Modified { diff: &diff_view },
@@ -92,10 +98,18 @@ impl DetailReporter<TextDiff, FileLeaf, HtmlReport> for TextDiffReporter {
             detail: TextDetailBody::Diff { lines: &diff_view },
         };
         reporter.record_modified(name, COMPARES_NAME, preview_html, detail_html)?;
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 
-    fn report_added(&self, name: &str, data: FileLeaf, reporter: &HtmlReport) -> Result<(), Self::Error> {
+    fn report_added(
+        &self,
+        name: &str,
+        data: FileLeaf,
+        reporter: &HtmlReport,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
+        if !is_text_file(&data.kind, &data.content) {
+            return Ok(MayUnsupported::Unsupported);
+        }
         let actual_text = str::from_utf8(&data.content).expect("Invalid content");
         let preview_html = TextPreviewTemplate {
             body: TextPreviewBody::Added { body: actual_text },
@@ -107,10 +121,18 @@ impl DetailReporter<TextDiff, FileLeaf, HtmlReport> for TextDiffReporter {
             },
         };
         reporter.record_added(name, COMPARES_NAME, preview_html, detail_html)?;
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 
-    fn report_deleted(&self, name: &str, data: FileLeaf, reporter: &HtmlReport) -> Result<(), Self::Error> {
+    fn report_deleted(
+        &self,
+        name: &str,
+        data: FileLeaf,
+        reporter: &HtmlReport,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
+        if !is_text_file(&data.kind, &data.content) {
+            return Ok(MayUnsupported::Unsupported);
+        }
         let expected_text = str::from_utf8(&data.content).expect("Invalid content");
         let preview_html = TextPreviewTemplate {
             body: TextPreviewBody::Deleted { body: expected_text },
@@ -122,6 +144,6 @@ impl DetailReporter<TextDiff, FileLeaf, HtmlReport> for TextDiffReporter {
             },
         };
         reporter.record_deleted(name, COMPARES_NAME, preview_html, detail_html)?;
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 }

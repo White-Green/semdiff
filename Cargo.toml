@@ -9,6 +9,7 @@ version = "0.1.0"
 [workspace.dependencies]
 semdiff-core = { path = "crates/semdiff-core" }
 semdiff-differ-binary = { path = "crates/semdiff-differ-binary" }
+semdiff-differ-image = { path = "crates/semdiff-differ-image" }
 semdiff-differ-text = { path = "crates/semdiff-differ-text" }
 semdiff-output = { path = "crates/semdiff-output" }
 semdiff-tree-fs = { path = "crates/semdiff-tree-fs" }
@@ -24,3 +25,4 @@ serde = { features = ["derive"], version = "1.0.218" }
 serde_json = "1.0.139"
 similar = { features = ["bytes"], version = "2.7.0" }
 thiserror = "2.0.18"
+image = "0.25.9"

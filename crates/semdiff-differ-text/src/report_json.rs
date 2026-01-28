@@ -1,5 +1,5 @@
 use crate::{TextDiff, TextDiffReporter, is_text_file};
-use semdiff_core::DetailReporter;
+use semdiff_core::{DetailReporter, MayUnsupported};
 use semdiff_output::json::JsonReport;
 use semdiff_tree_fs::FileLeaf;
 use serde::Serialize;
@@ -11,16 +11,22 @@ const COMPARES_NAME: &str = "text";
 impl<W> DetailReporter<TextDiff, FileLeaf, JsonReport<W>> for TextDiffReporter {
     type Error = convert::Infallible;
 
-    fn available(&self, data: &FileLeaf) -> Result<bool, Self::Error> {
-        Ok(is_text_file(&data.kind, &data.content))
-    }
-
-    fn report_unchanged(&self, name: &str, _diff: TextDiff, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+    fn report_unchanged(
+        &self,
+        name: &str,
+        _diff: TextDiff,
+        reporter: &JsonReport<W>,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.record_unchanged(name, COMPARES_NAME, ());
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 
-    fn report_modified(&self, name: &str, diff: TextDiff, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+    fn report_modified(
+        &self,
+        name: &str,
+        diff: TextDiff,
+        reporter: &JsonReport<W>,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         let s = diff
             .diff()
             .iter_all_changes()
@@ -41,16 +47,32 @@ impl<W> DetailReporter<TextDiff, FileLeaf, JsonReport<W>> for TextDiffReporter {
             deleted: usize,
         }
         reporter.record_modified(name, COMPARES_NAME, s);
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 
-    fn report_added(&self, name: &str, _data: FileLeaf, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+    fn report_added(
+        &self,
+        name: &str,
+        data: FileLeaf,
+        reporter: &JsonReport<W>,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
+        if !is_text_file(&data.kind, &data.content) {
+            return Ok(MayUnsupported::Unsupported);
+        }
         reporter.record_added(name, COMPARES_NAME, ());
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 
-    fn report_deleted(&self, name: &str, _data: FileLeaf, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+    fn report_deleted(
+        &self,
+        name: &str,
+        data: FileLeaf,
+        reporter: &JsonReport<W>,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
+        if !is_text_file(&data.kind, &data.content) {
+            return Ok(MayUnsupported::Unsupported);
+        }
         reporter.record_deleted(name, COMPARES_NAME, ());
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 }

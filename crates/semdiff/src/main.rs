@@ -63,6 +63,8 @@ fn construct_diff<R: Sync>() -> Vec<Box<dyn DiffReport<FileLeaf, R>>>
 where
     semdiff_differ_text::TextDiffReporter:
         DetailReporter<<semdiff_differ_text::TextDiffCalculator as DiffCalculator<FileLeaf>>::Diff, FileLeaf, R>,
+    semdiff_differ_image::ImageDiffReporter:
+        DetailReporter<<semdiff_differ_image::ImageDiffCalculator as DiffCalculator<FileLeaf>>::Diff, FileLeaf, R>,
     semdiff_differ_binary::BinaryDiffReporter:
         DetailReporter<<semdiff_differ_binary::BinaryDiffCalculator as DiffCalculator<FileLeaf>>::Diff, FileLeaf, R>,
 {
@@ -70,6 +72,10 @@ where
         Box::new(DiffAndReport::new(
             semdiff_differ_text::TextDiffCalculator,
             semdiff_differ_text::TextDiffReporter,
+        )) as Box<dyn DiffReport<FileLeaf, R>>,
+        Box::new(DiffAndReport::new(
+            semdiff_differ_image::ImageDiffCalculator::default(),
+            semdiff_differ_image::ImageDiffReporter,
         )) as Box<dyn DiffReport<FileLeaf, R>>,
         Box::new(DiffAndReport::new(
             semdiff_differ_binary::BinaryDiffCalculator,

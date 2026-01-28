@@ -11,6 +11,7 @@ path = "src/main.rs"
 clap = { workspace = true }
 semdiff-core = { workspace = true }
 semdiff-differ-binary = { workspace = true }
+semdiff-differ-image = { workspace = true }
 semdiff-differ-text = { workspace = true }
 semdiff-output = { workspace = true }
 semdiff-tree-fs = { workspace = true }

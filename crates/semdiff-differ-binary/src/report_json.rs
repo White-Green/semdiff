@@ -1,5 +1,5 @@
 use crate::{BinaryDiff, BinaryDiffReporter};
-use semdiff_core::DetailReporter;
+use semdiff_core::{DetailReporter, MayUnsupported};
 use semdiff_output::json::JsonReport;
 use semdiff_tree_fs::FileLeaf;
 use serde::Serialize;
@@ -10,19 +10,25 @@ const COMPARES_NAME: &str = "binary";
 impl<W> DetailReporter<BinaryDiff, FileLeaf, JsonReport<W>> for BinaryDiffReporter {
     type Error = convert::Infallible;
 
-    fn available(&self, _data: &FileLeaf) -> Result<bool, Self::Error> {
-        Ok(true)
-    }
-
-    fn report_unchanged(&self, name: &str, diff: BinaryDiff, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+    fn report_unchanged(
+        &self,
+        name: &str,
+        diff: BinaryDiff,
+        reporter: &JsonReport<W>,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         let report = SingleReport {
             size: diff.expected().len(),
         };
         reporter.record_unchanged(name, COMPARES_NAME, report);
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 
-    fn report_modified(&self, name: &str, diff: BinaryDiff, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+    fn report_modified(
+        &self,
+        name: &str,
+        diff: BinaryDiff,
+        reporter: &JsonReport<W>,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         let stat = BinaryDiff::stat(&diff.changes());
         let expected_size = diff.expected.len();
         let actual_size = diff.actual.len();
@@ -33,23 +39,33 @@ impl<W> DetailReporter<BinaryDiff, FileLeaf, JsonReport<W>> for BinaryDiffReport
             deleted: stat.deleted,
         };
         reporter.record_modified(name, COMPARES_NAME, report);
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 
-    fn report_added(&self, name: &str, data: FileLeaf, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+    fn report_added(
+        &self,
+        name: &str,
+        data: FileLeaf,
+        reporter: &JsonReport<W>,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         let report = SingleReport {
             size: data.content.len(),
         };
         reporter.record_added(name, COMPARES_NAME, report);
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 
-    fn report_deleted(&self, name: &str, data: FileLeaf, reporter: &JsonReport<W>) -> Result<(), Self::Error> {
+    fn report_deleted(
+        &self,
+        name: &str,
+        data: FileLeaf,
+        reporter: &JsonReport<W>,
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         let report = SingleReport {
             size: data.content.len(),
         };
         reporter.record_deleted(name, COMPARES_NAME, report);
-        Ok(())
+        Ok(MayUnsupported::Ok(()))
     }
 }
 

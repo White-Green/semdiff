@@ -63,7 +63,7 @@ pub trait LeafTraverse {
 }
 
 pub trait NodeTraverse: Sized {
-    type Leaf: LeafTraverse;
+    type Leaf: LeafTraverse + Clone;
     type TraverseError: Error + Send + 'static;
     fn name(&self) -> &str;
     #[allow(clippy::type_complexity)]
@@ -76,20 +76,24 @@ pub trait Diff {
     fn equal(&self) -> bool;
 }
 
+#[derive(Debug)]
+pub enum MayUnsupported<T> {
+    Ok(T),
+    Unsupported,
+}
+
 pub trait DiffCalculator<T> {
     type Error: Error + Send + 'static;
     type Diff: Diff + Send;
-    fn available(&self, expected: &T, actual: &T) -> Result<bool, Self::Error>;
-    fn diff(&self, name: &str, expected: T, actual: T) -> Result<Self::Diff, Self::Error>;
+    fn diff(&self, name: &str, expected: T, actual: T) -> Result<MayUnsupported<Self::Diff>, Self::Error>;
 }
 
 pub trait DetailReporter<Diff, T, Reporter> {
     type Error: Error + Send + 'static;
-    fn available(&self, data: &T) -> Result<bool, Self::Error>;
-    fn report_unchanged(&self, name: &str, diff: Diff, reporter: &Reporter) -> Result<(), Self::Error>;
-    fn report_modified(&self, name: &str, diff: Diff, reporter: &Reporter) -> Result<(), Self::Error>;
-    fn report_added(&self, name: &str, data: T, reporter: &Reporter) -> Result<(), Self::Error>;
-    fn report_deleted(&self, name: &str, data: T, reporter: &Reporter) -> Result<(), Self::Error>;
+    fn report_unchanged(&self, name: &str, diff: Diff, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
+    fn report_modified(&self, name: &str, diff: Diff, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
+    fn report_added(&self, name: &str, data: T, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
+    fn report_deleted(&self, name: &str, data: T, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
 }
 
 #[doc(hidden)]
@@ -98,10 +102,15 @@ mod __sealed {
 }
 
 pub trait DiffReport<T, Reporter>: __sealed::Sealed {
-    fn available(&self, expected: Option<&T>, actual: Option<&T>) -> Result<bool, Box<dyn Error + Send>>;
-    fn diff(&self, name: &str, expected: T, actual: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>>;
-    fn added(&self, name: &str, data: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>>;
-    fn deleted(&self, name: &str, data: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>>;
+    fn diff(
+        &self,
+        name: &str,
+        expected: T,
+        actual: T,
+        reporter: &Reporter,
+    ) -> Result<MayUnsupported<()>, Box<dyn Error + Send>>;
+    fn added(&self, name: &str, data: T, reporter: &Reporter) -> Result<MayUnsupported<()>, Box<dyn Error + Send>>;
+    fn deleted(&self, name: &str, data: T, reporter: &Reporter) -> Result<MayUnsupported<()>, Box<dyn Error + Send>>;
 }
 
 #[derive(Debug)]
@@ -125,44 +134,38 @@ where
     T: Send,
     Reporter: Sync,
 {
-    fn available(&self, expected: Option<&T>, actual: Option<&T>) -> Result<bool, Box<dyn Error + Send>> {
-        match (expected, actual) {
-            (Some(expected), Some(actual)) => self
-                .diff
-                .available(expected, actual)
-                .map_err(|e| Box::new(e) as Box<dyn Error + Send>),
-            (Some(data), None) | (None, Some(data)) => self
-                .report
-                .available(data)
-                .map_err(|e| Box::new(e) as Box<dyn Error + Send>),
-            (None, None) => unreachable!(),
-        }
-    }
-
-    fn diff(&self, name: &str, expected: T, actual: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>> {
+    fn diff(
+        &self,
+        name: &str,
+        expected: T,
+        actual: T,
+        reporter: &Reporter,
+    ) -> Result<MayUnsupported<()>, Box<dyn Error + Send>> {
         let diff = self
             .diff
             .diff(name, expected, actual)
             .map_err(|e| Box::new(e) as Box<dyn Error + Send>)?;
+        let MayUnsupported::Ok(diff) = diff else {
+            return Ok(MayUnsupported::Unsupported);
+        };
         if diff.equal() {
             self.report
                 .report_unchanged(name, diff, reporter)
-                .map_err(|e| Box::new(e) as Box<dyn Error + Send>)?;
+                .map_err(|e| Box::new(e) as Box<dyn Error + Send>)
         } else {
             self.report
                 .report_modified(name, diff, reporter)
-                .map_err(|e| Box::new(e) as Box<dyn Error + Send>)?;
+                .map_err(|e| Box::new(e) as Box<dyn Error + Send>)
         }
-        Ok(())
     }
 
-    fn added(&self, name: &str, data: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>> {
+    fn added(&self, name: &str, data: T, reporter: &Reporter) -> Result<MayUnsupported<()>, Box<dyn Error + Send>> {
         self.report
             .report_added(name, data, reporter)
             .map_err(|e| Box::new(e) as Box<dyn Error + Send>)
     }
 
-    fn deleted(&self, name: &str, data: T, reporter: &Reporter) -> Result<(), Box<dyn Error + Send>> {
+    fn deleted(&self, name: &str, data: T, reporter: &Reporter) -> Result<MayUnsupported<()>, Box<dyn Error + Send>> {
         self.report
             .report_deleted(name, data, reporter)
             .map_err(|e| Box::new(e) as Box<dyn Error + Send>)
@@ -225,10 +228,35 @@ where
     where
         N: NodeTraverse,
     {
-        let get_diff_report = |expected: Option<&N::Leaf>, actual: Option<&N::Leaf>| {
+        let diff_fn = |name: &str, expected: &N::Leaf, actual: &N::Leaf| {
             for diff in diff {
-                if diff.available(expected, actual).map_err(CalcDiffError::DiffError)? {
-                    return Ok(diff);
+                if let MayUnsupported::Ok(()) = diff
+                    .diff(name, expected.clone(), actual.clone(), reporter)
+                    .map_err(CalcDiffError::DiffError)?
+                {
+                    return Ok(());
+                }
+            }
+            Err(CalcDiffError::<N::TraverseError, RE>::NoDiffReportMatched)
+        };
+        let added_fn = |name: &str, actual: &N::Leaf| {
+            for diff in diff {
+                if let MayUnsupported::Ok(()) = diff
+                    .added(name, actual.clone(), reporter)
+                    .map_err(CalcDiffError::DiffError)?
+                {
+                    return Ok(());
+                }
+            }
+            Err(CalcDiffError::<N::TraverseError, RE>::NoDiffReportMatched)
+        };
+        let deleted_fn = |name: &str, expected: &N::Leaf| {
+            for diff in diff {
+                if let MayUnsupported::Ok(()) = diff
+                    .deleted(name, expected.clone(), reporter)
+                    .map_err(CalcDiffError::DiffError)?
+                {
+                    return Ok(());
                 }
             }
             Err(CalcDiffError::<N::TraverseError, RE>::NoDiffReportMatched)
@@ -272,11 +300,7 @@ where
                             }
                             (TraversalNode::Leaf(expected), TraversalNode::Leaf(actual)) => {
                                 let segment = expected.name().to_owned();
-                                with_appended_name(name, segment.as_str(), |name| {
-                                    get_diff_report(Some(&expected), Some(&actual))?
-                                        .diff(name.as_str(), expected, actual, reporter)
-                                        .map_err(CalcDiffError::DiffError)
-                                })?;
+                                with_appended_name(name, segment.as_str(), |name| diff_fn(name, &expected, &actual))?;
                             }
                             _ => unreachable!(),
                         },
@@ -289,11 +313,7 @@ where
                             }
                             TraversalNode::Leaf(leaf) => {
                                 let segment = leaf.name().to_owned();
-                                with_appended_name(name, segment.as_str(), |name| {
-                                    get_diff_report(Some(&leaf), None)?
-                                        .deleted(name.as_str(), leaf, reporter)
-                                        .map_err(CalcDiffError::DiffError)
-                                })?;
+                                with_appended_name(name, segment.as_str(), |name| deleted_fn(name, &leaf))?;
                             }
                         },
                         (None, Some(actual)) => match actual {
@@ -305,11 +325,7 @@ where
                             }
                             TraversalNode::Leaf(leaf) => {
                                 let segment = leaf.name().to_owned();
-                                with_appended_name(name, segment.as_str(), |name| {
-                                    get_diff_report(None, Some(&leaf))?
-                                        .added(name.as_str(), leaf, reporter)
-                                        .map_err(CalcDiffError::DiffError)
-                                })?;
+                                with_appended_name(name, segment.as_str(), |name| added_fn(name, &leaf))?;
                             }
                         },
                     }
@@ -327,11 +343,7 @@ where
                         }
                         TraversalNode::Leaf(leaf) => {
                             let segment = leaf.name().to_owned();
-                            with_appended_name(name, segment.as_str(), |name| {
-                                get_diff_report(Some(&leaf), None)?
-                                    .deleted(name.as_str(), leaf, reporter)
-                                    .map_err(CalcDiffError::DiffError)
-                            })?;
+                            with_appended_name(name, segment.as_str(), |name| deleted_fn(name, &leaf))?;
                         }
                     }
                 }
@@ -348,11 +360,7 @@ where
                         }
                         TraversalNode::Leaf(leaf) => {
                             let segment = leaf.name().to_owned();
-                            with_appended_name(name, segment.as_str(), |name| {
-                                get_diff_report(None, Some(&leaf))?
-                                    .added(name.as_str(), leaf, reporter)
-                                    .map_err(CalcDiffError::DiffError)
-                            })?;
+                            with_appended_name(name, segment.as_str(), |name| added_fn(name, &leaf))?;
                         }
                     }
                 }

@@ -1,8 +1,9 @@
 use memmap2::Mmap;
-use semdiff_core::{Diff, DiffCalculator};
+use semdiff_core::{Diff, DiffCalculator, MayUnsupported};
 use semdiff_tree_fs::FileLeaf;
 use similar::{ChangeTag, TextDiffConfig};
 use std::convert;
+use std::sync::Arc;
 
 pub mod report_html;
 pub mod report_json;
@@ -13,8 +14,8 @@ pub struct BinaryDiffReporter;
 #[derive(Debug)]
 pub struct BinaryDiff {
     equal: bool,
-    expected: Mmap,
-    actual: Mmap,
+    expected: Arc<Mmap>,
+    actual: Arc<Mmap>,
 }
 
 impl Diff for BinaryDiff {
@@ -35,7 +36,7 @@ impl BinaryDiff {
     fn changes(&self) -> similar::TextDiff<'_, '_, '_, [u8]> {
         TextDiffConfig::default()
             .algorithm(similar::Algorithm::Patience)
-            .diff_chars(&*self.expected, &*self.actual)
+            .diff_chars(&self.expected[..], &self.actual[..])
     }
 
     fn stat<'a>(changes: &'a similar::TextDiff<'a, 'a, 'a, [u8]>) -> ChangeStat {
@@ -78,15 +79,16 @@ impl DiffCalculator<FileLeaf> for BinaryDiffCalculator {
     type Error = convert::Infallible;
     type Diff = BinaryDiff;
 
-    fn available(&self, _expected: &FileLeaf, _actual: &FileLeaf) -> Result<bool, Self::Error> {
-        Ok(true)
-    }
-
-    fn diff(&self, _name: &str, expected: FileLeaf, actual: FileLeaf) -> Result<Self::Diff, Self::Error> {
-        Ok(BinaryDiff {
-            equal: <[u8]>::eq(&*expected.content, &*actual.content),
+    fn diff(
+        &self,
+        _name: &str,
+        expected: FileLeaf,
+        actual: FileLeaf,
+    ) -> Result<MayUnsupported<Self::Diff>, Self::Error> {
+        Ok(MayUnsupported::Ok(BinaryDiff {
+            equal: <[u8] as PartialEq<[u8]>>::eq(&*expected.content, &*actual.content),
             expected: expected.content,
             actual: actual.content,
-        })
+        }))
     }
 }

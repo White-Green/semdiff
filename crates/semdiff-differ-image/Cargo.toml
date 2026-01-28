@@ -1,0 +1,17 @@
+[package]
+edition = { workspace = true }
+name = "semdiff-differ-image"
+version = { workspace = true }
+
+[dependencies]
+askama = { workspace = true }
+image = { workspace = true }
+mime = { workspace = true }
+semdiff-core = { workspace = true }
+semdiff-output = { workspace = true }
+semdiff-tree-fs = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+memmap2 = { workspace = true }
