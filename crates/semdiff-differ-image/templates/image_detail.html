@@ -216,9 +216,9 @@
     {% match detail %}
     {% when ImageDetailBody::Diff with { expected, actual, diff } %}
     <div class="image-detail-tabs" data-image-tabs>
-      <button type="button" class="image-detail-tab" data-image-view="overlay" aria-selected="true">スライダー比較</button>
-      <button type="button" class="image-detail-tab" data-image-view="diff" aria-selected="false">差分画像のみ</button>
-      <button type="button" class="image-detail-tab" data-image-view="side" aria-selected="false">左右比較</button>
+      <button type="button" class="image-detail-tab" data-image-view="overlay" aria-selected="true">Slider comparison</button>
+      <button type="button" class="image-detail-tab" data-image-view="diff" aria-selected="false">Diff image only</button>
+      <button type="button" class="image-detail-tab" data-image-view="side" aria-selected="false">Side-by-side</button>
     </div>
     <div class="image-detail-view active" id="image-view-pane-overlay">
       <div class="image-overlay" data-image-overlay>
