@@ -8,7 +8,6 @@ use std::fs::File;
 use std::hash::{Hash, Hasher};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use thiserror::Error;
 
 pub struct HtmlReport {
@@ -16,11 +15,10 @@ pub struct HtmlReport {
     detail_dir: PathBuf,
     detail_dir_name: String,
     back_link: String,
-    unchanged: AtomicUsize,
-    modified: AtomicUsize,
-    added: AtomicUsize,
-    deleted: AtomicUsize,
-    entries: DashMap<String, HtmlReportEntry>,
+    unchanged_entries: DashMap<String, HtmlReportEntry>,
+    modified_entries: DashMap<String, HtmlReportEntry>,
+    added_entries: DashMap<String, HtmlReportEntry>,
+    deleted_entries: DashMap<String, HtmlReportEntry>,
 }
 
 impl HtmlReport {
@@ -40,11 +38,10 @@ impl HtmlReport {
             detail_dir,
             detail_dir_name,
             back_link,
-            unchanged: AtomicUsize::new(0),
-            modified: AtomicUsize::new(0),
-            added: AtomicUsize::new(0),
-            deleted: AtomicUsize::new(0),
-            entries: DashMap::new(),
+            unchanged_entries: DashMap::new(),
+            modified_entries: DashMap::new(),
+            added_entries: DashMap::new(),
+            deleted_entries: DashMap::new(),
         }
     }
 
@@ -55,11 +52,11 @@ impl HtmlReport {
         preview_html: impl Template,
         detail_html: impl Template,
     ) -> Result<(), HtmlReportError> {
-        self.unchanged.fetch_add(1, Ordering::Relaxed);
         let preview_html = preview_html.render()?;
         let detail_html = detail_html.render()?;
         let detail_file_name = Some(self.write_detail(name, HtmlEntryStatus::Unchanged, compares, &detail_html)?);
         self.insert_entry(
+            HtmlEntryStatus::Unchanged,
             name,
             HtmlReportEntry::new(HtmlEntryStatus::Unchanged, compares, preview_html, detail_file_name),
         );
@@ -73,11 +70,11 @@ impl HtmlReport {
         preview_html: impl Template,
         detail_html: impl Template,
     ) -> Result<(), HtmlReportError> {
-        self.modified.fetch_add(1, Ordering::Relaxed);
         let preview_html = preview_html.render()?;
         let detail_html = detail_html.render()?;
         let detail_file_name = Some(self.write_detail(name, HtmlEntryStatus::Modified, compares, &detail_html)?);
         self.insert_entry(
+            HtmlEntryStatus::Modified,
             name,
             HtmlReportEntry::new(HtmlEntryStatus::Modified, compares, preview_html, detail_file_name),
         );
@@ -91,11 +88,11 @@ impl HtmlReport {
         preview_html: impl Template,
         detail_html: impl Template,
     ) -> Result<(), HtmlReportError> {
-        self.added.fetch_add(1, Ordering::Relaxed);
         let preview_html = preview_html.render()?;
         let detail_html = detail_html.render()?;
         let detail_file_name = Some(self.write_detail(name, HtmlEntryStatus::Added, compares, &detail_html)?);
         self.insert_entry(
+            HtmlEntryStatus::Added,
             name,
             HtmlReportEntry::new(HtmlEntryStatus::Added, compares, preview_html, detail_file_name),
         );
@@ -109,20 +106,26 @@ impl HtmlReport {
         preview_html: impl Template,
         detail_html: impl Template,
     ) -> Result<(), HtmlReportError> {
-        self.deleted.fetch_add(1, Ordering::Relaxed);
         let preview_html = preview_html.render()?;
         let detail_html = detail_html.render()?;
         let detail_file_name = Some(self.write_detail(name, HtmlEntryStatus::Deleted, compares, &detail_html)?);
         self.insert_entry(
+            HtmlEntryStatus::Deleted,
             name,
             HtmlReportEntry::new(HtmlEntryStatus::Deleted, compares, preview_html, detail_file_name),
         );
         Ok(())
     }
 
-    fn insert_entry(&self, name: &str, entry: HtmlReportEntry) {
+    fn insert_entry(&self, status: HtmlEntryStatus, name: &str, entry: HtmlReportEntry) {
         let key = name.to_owned();
-        assert!(self.entries.insert(key, entry).is_none());
+        let previous = match status {
+            HtmlEntryStatus::Unchanged => self.unchanged_entries.insert(key, entry),
+            HtmlEntryStatus::Modified => self.modified_entries.insert(key, entry),
+            HtmlEntryStatus::Added => self.added_entries.insert(key, entry),
+            HtmlEntryStatus::Deleted => self.deleted_entries.insert(key, entry),
+        };
+        assert!(previous.is_none());
     }
 
     fn make_detail_filename(name: &str) -> String {
@@ -227,7 +230,7 @@ impl HtmlReportEntry {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum HtmlEntryStatus {
     Unchanged,
     Modified,
@@ -266,11 +269,18 @@ pub enum HtmlReportError {
 #[derive(Template)]
 #[template(path = "report_root.html")]
 struct RootTemplate<'a> {
+    total: usize,
     unchanged: usize,
     modified: usize,
     added: usize,
     deleted: usize,
-    entries: &'a [HtmlEntryView],
+    entry_groups: &'a [HtmlEntryGroup],
+}
+
+struct HtmlEntryGroup {
+    status_label: &'static str,
+    status_class: &'static str,
+    entries: Vec<HtmlEntryView>,
 }
 
 #[derive(Template)]
@@ -304,38 +314,55 @@ impl Reporter for HtmlReport {
         let HtmlReport {
             root,
             detail_dir_name,
-            unchanged,
-            modified,
-            added,
-            deleted,
-            entries,
+            unchanged_entries,
+            modified_entries,
+            added_entries,
+            deleted_entries,
             ..
         } = self;
-        let sorted_entries: BTreeMap<String, HtmlReportEntry> = BTreeMap::from_iter(entries);
-        let mut views = Vec::with_capacity(sorted_entries.len());
-
-        for (name, entry) in sorted_entries {
-            let detail_link = entry
-                .detail_file_name
-                .as_ref()
-                .map(|file_name| format!("{}/{}", detail_dir_name, file_name))
-                .unwrap_or_default();
-            views.push(HtmlEntryView {
-                name,
-                status_label: entry.status.label(),
-                status_class: entry.status.class(),
-                compares: entry.compares,
-                preview_html: entry.preview_html,
-                detail_link,
+        let unchanged_count = unchanged_entries.len();
+        let modified_count = modified_entries.len();
+        let added_count = added_entries.len();
+        let deleted_count = deleted_entries.len();
+        let status_order = [
+            (HtmlEntryStatus::Modified, modified_entries),
+            (HtmlEntryStatus::Deleted, deleted_entries),
+            (HtmlEntryStatus::Added, added_entries),
+            (HtmlEntryStatus::Unchanged, unchanged_entries),
+        ];
+        let mut entry_groups = Vec::with_capacity(status_order.len());
+        for (status, entries) in status_order {
+            let sorted_entries = BTreeMap::from_iter(entries);
+            let mut group_entries = Vec::new();
+            for (name, entry) in sorted_entries {
+                let detail_link = entry
+                    .detail_file_name
+                    .as_ref()
+                    .map(|file_name| format!("{}/{}", detail_dir_name, file_name))
+                    .unwrap_or_default();
+                group_entries.push(HtmlEntryView {
+                    name,
+                    status_label: entry.status.label(),
+                    status_class: entry.status.class(),
+                    compares: entry.compares,
+                    preview_html: entry.preview_html.clone(),
+                    detail_link,
+                });
+            }
+            entry_groups.push(HtmlEntryGroup {
+                status_label: status.label(),
+                status_class: status.class(),
+                entries: group_entries,
             });
         }
 
         let template = RootTemplate {
-            unchanged: unchanged.into_inner(),
-            modified: modified.into_inner(),
-            added: added.into_inner(),
-            deleted: deleted.into_inner(),
-            entries: &views,
+            total: unchanged_count + modified_count + added_count + deleted_count,
+            unchanged: unchanged_count,
+            modified: modified_count,
+            added: added_count,
+            deleted: deleted_count,
+            entry_groups: &entry_groups,
         };
         let rendered = template.render()?;
         fs::write(root, rendered)?;

@@ -49,18 +49,73 @@
         flex-wrap: wrap;
         margin-bottom: 1.25rem;
       }
-      .summary .card {
+      .summary-button {
         background: var(--color-surface);
         border: 1px solid var(--color-border);
         border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        min-width: 7.5rem;
+        padding: 0.65rem 0.9rem;
+        min-width: 8.5rem;
         box-shadow: 0 0.0625rem 0.125rem var(--color-shadow);
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        cursor: pointer;
+        color: inherit;
+        font: inherit;
+      }
+      .summary-button[aria-pressed="true"] {
+        outline: 0.125rem solid var(--color-link);
+        outline-offset: 0.125rem;
+      }
+      .summary-label {
+        text-transform: capitalize;
+      }
+      .summary-count {
+        font-weight: 700;
+      }
+      .summary-button:focus-visible {
+        outline: 0.125rem solid var(--color-link);
+        outline-offset: 0.125rem;
+      }
+      .entry-groups {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+        row-gap: 1.5rem;
+      }
+      .entry-group {
+        display: grid;
+        gap: 0.75rem;
+        grid-column: 1 / -1;
+        grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+      }
+      .entry-group-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        grid-column: 1 / -1;
+      }
+      .entry-group-title {
+        margin: 0;
+        font-size: 1.05rem;
+        text-transform: capitalize;
+      }
+      .entry-group.is-hidden {
+        display: none;
       }
       .entries {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
         gap: 1rem;
+        grid-column: 1 / -1;
+      }
+      @supports (grid-template-columns: subgrid) {
+        .entry-group {
+          grid-template-columns: subgrid;
+        }
+        .entries {
+          grid-template-columns: subgrid;
+        }
       }
       .entry {
         background: var(--color-surface);
@@ -183,29 +238,79 @@
   <body>
     <h1>semdiff Report</h1>
     <div class="summary">
-      <div class="card">Unchanged: {{ unchanged }}</div>
-      <div class="card">Modified: {{ modified }}</div>
-      <div class="card">Added: {{ added }}</div>
-      <div class="card">Deleted: {{ deleted }}</div>
+      <button class="summary-button" type="button" data-status-filter="all" aria-pressed="true">
+        <span class="summary-label">all</span>
+        <span class="summary-count">{{ total }}</span>
+      </button>
+      <button class="summary-button" type="button" data-status-filter="modified" aria-pressed="false">
+        <span class="badge modified summary-label">modified</span>
+        <span class="summary-count">{{ modified }}</span>
+      </button>
+      <button class="summary-button" type="button" data-status-filter="deleted" aria-pressed="false">
+        <span class="badge deleted summary-label">deleted</span>
+        <span class="summary-count">{{ deleted }}</span>
+      </button>
+      <button class="summary-button" type="button" data-status-filter="added" aria-pressed="false">
+        <span class="badge added summary-label">added</span>
+        <span class="summary-count">{{ added }}</span>
+      </button>
+      <button class="summary-button" type="button" data-status-filter="unchanged" aria-pressed="false">
+        <span class="badge unchanged summary-label">unchanged</span>
+        <span class="summary-count">{{ unchanged }}</span>
+      </button>
     </div>
-
-    <div class="entries">
-      {% for entry in entries %}
-      <a class="entry entry-link" href="{{ entry.detail_link }}">
-        <div class="entry-badges">
-          <span class="badge {{ entry.status_class }}">{{ entry.status_label }}</span>
-          <span class="badge">{{ entry.compares }}</span>
+    <div class="entry-groups">
+      {% for group in entry_groups %}
+      {% if group.entries.len() > 0 %}
+      <section class="entry-group" data-status-group="{{ group.status_class }}">
+        <div class="entry-group-header">
+          <h2 class="entry-group-title" id="status-{{ group.status_class }}">{{ group.status_label }}</h2>
+          <span class="badge {{ group.status_class }}">{{ group.entries.len() }}</span>
         </div>
-        <div class="entry-header">
-          <div class="entry-name">{{ entry.name }}</div>
+        <div class="entries">
+          {% for entry in group.entries %}
+          <a class="entry entry-link" href="{{ entry.detail_link }}" data-status-entry="{{ entry.status_class }}">
+            <div class="entry-badges">
+              <span class="badge {{ entry.status_class }}">{{ entry.status_label }}</span>
+              <span class="badge">{{ entry.compares }}</span>
+            </div>
+            <div class="entry-header">
+              <div class="entry-name">{{ entry.name }}</div>
+            </div>
+            <div class="preview">
+              <div class="preview-box">
+                <div class="preview-media">{{ entry.preview_html | safe }}</div>
+              </div>
+            </div>
+          </a>
+          {% endfor %}
         </div>
-        <div class="preview">
-          <div class="preview-box">
-            <div class="preview-media">{{ entry.preview_html | safe }}</div>
-          </div>
-        </div>
-      </a>
+      </section>
+      {% endif %}
       {% endfor %}
     </div>
+    <script>
+      (() => {
+        const buttons = document.querySelectorAll('[data-status-filter]');
+        const groups = document.querySelectorAll('[data-status-group]');
+        if (buttons.length === 0 || groups.length === 0) {
+          return;
+        }
+        const applyFilter = (status) => {
+          buttons.forEach((button) => {
+            const active = button.dataset.statusFilter === status;
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+          });
+          groups.forEach((group) => {
+            const visible = status === 'all' || group.dataset.statusGroup === status;
+            group.classList.toggle('is-hidden', !visible);
+          });
+        };
+        buttons.forEach((button) => {
+          button.addEventListener('click', () => applyFilter(button.dataset.statusFilter));
+        });
+        applyFilter('all');
+      })();
+    </script>
   </body>
 </html>
