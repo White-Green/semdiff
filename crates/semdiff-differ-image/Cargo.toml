@@ -12,6 +12,3 @@ semdiff-output = { workspace = true }
 semdiff-tree-fs = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
-
-[dev-dependencies]
-memmap2 = { workspace = true }
