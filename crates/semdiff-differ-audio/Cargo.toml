@@ -1,0 +1,18 @@
+[package]
+edition = { workspace = true }
+name = "semdiff-differ-audio"
+version = { workspace = true }
+
+[dependencies]
+askama = { workspace = true }
+image = { workspace = true }
+memmap2 = { workspace = true }
+mime = { workspace = true }
+mime_guess = { workspace = true }
+rustfft = { workspace = true }
+semdiff-core = { workspace = true }
+semdiff-output = { workspace = true }
+semdiff-tree-fs = { workspace = true }
+serde = { workspace = true }
+symphonia = { workspace = true }
+thiserror = { workspace = true }

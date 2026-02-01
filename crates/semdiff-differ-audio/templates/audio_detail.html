@@ -1,0 +1,137 @@
+<style>
+  .audio-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .audio-detail__section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .audio-detail__meta {
+    font-size: 0.9rem;
+    color: var(--diff-muted-text);
+  }
+
+  .audio-detail__media {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .audio-detail__media-group,
+  .audio-detail__diff-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .audio-detail__media-pair,
+  .audio-detail__diff-pair {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .audio-detail__media img,
+  .audio-detail__diff img {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    border: 1px solid var(--diff-border);
+    border-radius: 0.25rem;
+    background: var(--diff-empty-bg);
+    object-fit: contain;
+  }
+
+  .audio-detail audio {
+    width: 100%;
+  }
+
+  .audio-detail__diff {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 1024px) {
+    .audio-detail__media-group,
+    .audio-detail__diff-group {
+      grid-template-columns: 1fr;
+    }
+  }
+  </style>
+<div class="audio-detail">
+  {% match self.detail %}
+  {% when AudioDetailBody::Diff with { expected, actual, spectrogram_diff } %}
+  <section class="audio-detail__section">
+    <h3>Expected</h3>
+    <audio controls src="{{ expected.audio_src }}"></audio>
+    <div class="audio-detail__media">
+      <div class="audio-detail__media-group">
+        {% for (waveform_image, spectrogram_image) in expected.waveforms.iter().zip(expected.spectrograms.iter()) %}
+        <div class="audio-detail__media-pair">
+          <img src="{{ waveform_image.uri }}" alt="Expected waveform" width="{{ waveform_image.width }}" height="{{ waveform_image.height }}" />
+          <img src="{{ spectrogram_image.uri }}" alt="Expected spectrogram" width="{{ spectrogram_image.width }}" height="{{ spectrogram_image.height }}" />
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="audio-detail__meta">
+      Sample rate: {{ expected.sample_rate }} Hz · Channels: {{ expected.channels }} · Duration: {{ expected.duration_seconds }} sec
+    </div>
+  </section>
+  <section class="audio-detail__section">
+    <h3>Actual</h3>
+    <audio controls src="{{ actual.audio_src }}"></audio>
+    <div class="audio-detail__media">
+      <div class="audio-detail__media-group">
+        {% for (waveform_image, spectrogram_image) in actual.waveforms.iter().zip(actual.spectrograms.iter()) %}
+        <div class="audio-detail__media-pair">
+          <img src="{{ waveform_image.uri }}" alt="Actual waveform" width="{{ waveform_image.width }}" height="{{ waveform_image.height }}" />
+          <img src="{{ spectrogram_image.uri }}" alt="Actual spectrogram" width="{{ spectrogram_image.width }}" height="{{ spectrogram_image.height }}" />
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="audio-detail__meta">
+      Sample rate: {{ actual.sample_rate }} Hz · Channels: {{ actual.channels }} · Duration: {{ actual.duration_seconds }} sec
+    </div>
+  </section>
+  {% if spectrogram_diff.len() > 0 %}
+  <section class="audio-detail__section">
+    <h3>Diff</h3>
+    <div class="audio-detail__diff">
+      <div class="audio-detail__diff-group">
+        {% for image in spectrogram_diff %}
+        <div class="audio-detail__diff-pair">
+          <img src="{{ image.uri }}" alt="Spectrogram diff" width="{{ image.width }}" height="{{ image.height }}" />
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+  {% when AudioDetailBody::Single with { data } %}
+  <section class="audio-detail__section">
+    <h3>{{ data.label }}</h3>
+    <audio controls src="{{ data.audio_src }}"></audio>
+    <div class="audio-detail__media">
+      <div class="audio-detail__media-group">
+        {% for (waveform_image, spectrogram_image) in data.waveforms.iter().zip(data.spectrograms.iter()) %}
+        <div class="audio-detail__media-pair">
+          <img src="{{ waveform_image.uri }}" alt="Waveform" width="{{ waveform_image.width }}" height="{{ waveform_image.height }}" />
+          <img src="{{ spectrogram_image.uri }}" alt="Spectrogram" width="{{ spectrogram_image.width }}" height="{{ spectrogram_image.height }}" />
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="audio-detail__meta">
+      Sample rate: {{ data.sample_rate }} Hz · Channels: {{ data.channels }} · Duration: {{ data.duration_seconds }} sec
+    </div>
+  </section>
+  {% endmatch %}
+</div>

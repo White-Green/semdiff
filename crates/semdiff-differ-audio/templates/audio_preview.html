@@ -1,0 +1,54 @@
+<style>
+  .audio-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-height: 0;
+  }
+
+  .audio-preview__images {
+    display: block;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .audio-preview__image {
+    width: 100%;
+    border-radius: 0.25rem;
+    overflow: hidden;
+    background: var(--diff-empty-bg);
+  }
+
+  .audio-preview__image img {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    object-fit: contain;
+  }
+
+  .audio-preview audio {
+    width: 100%;
+  }
+</style>
+<div class="audio-preview">
+  {% match self.body %}
+  {% when AudioPreviewBody::Modified with { images, audio_src } %}
+  <div class="audio-preview__images">
+    {% for image in images %}
+    <div class="audio-preview__image">
+      <img src="{{ image.src }}" alt="{{ image.label }}" width="{{ image.width }}" height="{{ image.height }}" />
+    </div>
+    {% endfor %}
+  </div>
+  <audio controls src="{{ audio_src }}"></audio>
+{% when AudioPreviewBody::Single with { images, audio_src } %}
+  <div class="audio-preview__images">
+    {% for image in images %}
+    <div class="audio-preview__image">
+      <img src="{{ image.src }}" alt="{{ image.label }}" width="{{ image.width }}" height="{{ image.height }}" />
+    </div>
+    {% endfor %}
+  </div>
+  <audio controls src="{{ audio_src }}"></audio>
+  {% endmatch %}
+</div>

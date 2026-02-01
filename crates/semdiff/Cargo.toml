@@ -10,6 +10,7 @@ path = "src/main.rs"
 [dependencies]
 clap = { workspace = true }
 semdiff-core = { workspace = true }
+semdiff-differ-audio = { workspace = true }
 semdiff-differ-binary = { workspace = true }
 semdiff-differ-image = { workspace = true }
 semdiff-differ-text = { workspace = true }
