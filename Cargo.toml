@@ -16,17 +16,17 @@ semdiff-differ-text = { path = "crates/semdiff-differ-text" }
 semdiff-output = { path = "crates/semdiff-output" }
 semdiff-tree-fs = { path = "crates/semdiff-tree-fs" }
 
-askama = "0.15.1"
-clap = { features = ["derive"], version = "4.5.32" }
+askama = "0.15.4"
+clap = { features = ["derive"], version = "4.5.56" }
 dashmap = "6.1.0"
 image = "0.25.9"
 infer = "0.19.0"
 memmap2 = "0.9.9"
 mime = "0.3.17"
 mime_guess = "2.0.5"
-rustfft = "6.2.0"
-serde = { features = ["derive"], version = "1.0.218" }
-serde_json = "1.0.139"
+rustfft = "6.4.1"
+serde = { features = ["derive"], version = "1.0.228" }
+serde_json = "1.0.149"
 similar = { features = ["bytes"], version = "2.7.0" }
-symphonia = "0.5.4"
+symphonia = "0.5.5"
 thiserror = "2.0.18"
