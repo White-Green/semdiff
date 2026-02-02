@@ -1,0 +1,82 @@
+<style>
+    .json-preview {
+        font-size: 1rem;
+        width: 100%;
+        height: 100%;
+    }
+
+    .json-preview .panel {
+        padding: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .json-preview pre {
+        margin: 0;
+        font-size: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        overflow: hidden;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .json-preview .line {
+        display: flex;
+        font-size: 1rem;
+        padding: 0 0.25rem;
+        border-radius: 0;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.2;
+    }
+
+    .json-preview .line .prefix {
+        flex: 0 0 1.5em;
+        text-align: center;
+        white-space: pre;
+    }
+
+    .json-preview .line .content {
+        flex: 1;
+        min-width: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .json-preview .line.same {
+        background: var(--diff-same-bg);
+    }
+
+    .json-preview .line.added {
+        background: var(--diff-added-bg);
+    }
+
+    .json-preview .line.deleted {
+        background: var(--diff-deleted-bg);
+    }
+</style>
+<div class="json-preview">
+    <div class="panel">
+        {% match body %}
+        {% when JsonPreviewBody::Unchanged with { body } %}
+        <pre>{% for line in body.lines() %}<span class="line same"><span class="content">{{ line }}</span></span>{% endfor %}</pre>
+        {% when JsonPreviewBody::Modified with { lines } %}
+        <pre>{% for line in (lines.iter().skip_while(Self::is_equal).take(10)) %}{% match line.tag() %}{%
+            when ChangeTag::Unchanged
+            %}<span class="line same"><span class="prefix">{{ "  " }}</span><span class="content">{{ line.display_expected() }}</span></span>{%
+            when ChangeTag::Deleted
+            %}<span class="line deleted"><span class="prefix">{{ "- " }}</span><span class="content">{{ line.display_expected() }}</span></span>{%
+            when ChangeTag::Added
+            %}<span class="line added"><span class="prefix">{{ "+ " }}</span><span class="content">{{ line.display_actual() }}</span></span>{%
+            endmatch %}{% endfor %}</pre>
+        {% when JsonPreviewBody::Added with { body } %}
+        <pre>{% for line in body.lines() %}<span class="line added"><span class="prefix">{{ "+ " }}</span><span
+                class="content">{{ line }}</span></span>{% endfor %}</pre>
+        {% when JsonPreviewBody::Deleted with { body } %}
+        <pre>{% for line in body.lines() %}<span class="line deleted"><span class="prefix">{{ "- " }}</span><span
+                class="content">{{ line }}</span></span>{% endfor %}</pre>
+        {% endmatch %}
+    </div>
+</div>

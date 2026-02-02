@@ -13,6 +13,7 @@ semdiff-core = { workspace = true }
 semdiff-differ-audio = { workspace = true }
 semdiff-differ-binary = { workspace = true }
 semdiff-differ-image = { workspace = true }
+semdiff-differ-json = { workspace = true }
 semdiff-differ-text = { workspace = true }
 semdiff-output = { workspace = true }
 semdiff-tree-fs = { workspace = true }

@@ -1,0 +1,237 @@
+<style>
+    .json-detail {
+        width: 100%;
+        font-size: 1rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        display: grid;
+        column-gap: 0;
+        row-gap: 0;
+        {% if detail.is_multicolumn() %}
+        grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
+        {% else %}
+        grid-template-columns: max-content minmax(0, 1fr);
+        {% endif %}
+    }
+
+    .json-detail-row {
+        display: grid;
+        grid-template-columns: subgrid;
+        grid-column: 1 / -1;
+    }
+
+    .json-detail-cell {
+        border-left: 1px solid var(--diff-border);
+        border-right: 1px solid var(--diff-border);
+        padding: 0 0.5rem;
+        vertical-align: top;
+        line-height: 1.6;
+        user-select: none;
+        box-sizing: border-box;
+        grid-row: 1;
+    }
+
+    .json-detail-header .json-detail-cell {
+        background: var(--diff-header-bg);
+        text-align: left;
+        font-weight: 600;
+    }
+
+    .json-detail-cell.line-no {
+        text-align: right;
+        color: var(--diff-line-number-text);
+        background: var(--diff-line-number-bg);
+    }
+
+    .json-detail-cell.same {
+        background: var(--diff-same-bg);
+    }
+
+    .json-detail-cell.added {
+        background: var(--diff-added-bg);
+    }
+
+    .json-detail-cell.deleted {
+        background: var(--diff-deleted-bg);
+    }
+
+    .json-detail-cell.empty {
+        background: var(--diff-empty-bg);
+    }
+
+    .json-detail-cell .cell-text {
+        display: block;
+        white-space: pre-wrap;
+        word-break: break-word;
+        user-select: text;
+    }
+
+    .json-detail.select-left .cell-right .cell-text,
+    .json-detail.select-right .cell-left .cell-text {
+        user-select: none;
+    }
+
+    {% if detail.is_multicolumn() %}
+    @media (max-width: 1024px) {
+        .json-detail {
+            grid-template-columns: max-content max-content minmax(0, 1fr);
+        }
+
+        .json-detail .json-detail-cell.line-no.expected {
+            grid-column: 1;
+        }
+
+        .json-detail .json-detail-cell.line-no.actual {
+            grid-column: 2;
+        }
+
+        .json-detail .json-detail-header .json-detail-cell.header-label {
+            grid-column: 3;
+            color: transparent;
+        }
+
+        .json-detail .cell-left,
+        .json-detail .cell-right {
+            grid-column: 3;
+            min-width: 0;
+        }
+
+        .json-detail .cell-right.same {
+            display: none;
+        }
+
+        .json-detail .empty {
+            display: none;
+        }
+    }
+    {% endif %}
+</style>
+<div class="json-detail">
+    <div class="json-detail-row json-detail-header">
+        {% match detail %}
+        {% when JsonDetailBody::Diff with { .. } %}
+        <div class="json-detail-cell line-no">Line</div>
+        <div class="json-detail-cell header-label">expected</div>
+        <div class="json-detail-cell line-no">Line</div>
+        <div class="json-detail-cell header-label">actual</div>
+        {% when JsonDetailBody::Single with { label, .. } %}
+        <div class="json-detail-cell line-no">Line</div>
+        <div class="json-detail-cell">{{ label }}</div>
+        {% endmatch %}
+    </div>
+    {% match detail %}
+    {% when JsonDetailBody::Diff with { lines } %}
+    {% let mut expected_index = 1usize.. %}
+    {% let mut actual_index = 1usize.. %}
+    {% for line in lines %}
+    <div class="json-detail-row">
+        {% match line.tag() %}
+        {% when ChangeTag::Unchanged %}
+        <div class="json-detail-cell line-no expected">{{ expected_index.next().unwrap() }}</div>
+        <div class="json-detail-cell cell-left same"><span class="cell-text">{{ line.display_expected() }}</span>
+        </div>
+        <div class="json-detail-cell line-no actual">{{ actual_index.next().unwrap() }}</div>
+        <div class="json-detail-cell cell-right same"><span class="cell-text">{{ line.display_actual() }}</span>
+        </div>
+        {% when ChangeTag::Deleted %}
+        <div class="json-detail-cell line-no expected">{{ expected_index.next().unwrap() }}</div>
+        <div class="json-detail-cell cell-left deleted"><span
+                class="cell-text">{{ line.display_expected() }}</span></div>
+        <div class="json-detail-cell line-no actual"></div>
+        <div class="json-detail-cell cell-right empty"><span class="cell-text"></span></div>
+        {% when ChangeTag::Added %}
+        <div class="json-detail-cell line-no expected"></div>
+        <div class="json-detail-cell cell-left empty"><span class="cell-text"></span></div>
+        <div class="json-detail-cell line-no actual">{{ actual_index.next().unwrap() }}</div>
+        <div class="json-detail-cell cell-right added"><span class="cell-text">{{ line.display_actual() }}</span>
+        </div>
+        {% endmatch %}
+    </div>
+    {% endfor %}
+    {% when JsonDetailBody::Single with { label, body } %}
+    {% for (i, line) in body.lines().enumerate() %}
+    <div class="json-detail-row">
+        <div class="json-detail-cell line-no">{{ i + 1 }}</div>
+        <div class="json-detail-cell cell-left {{ label }}"><span class="cell-text">{{ line }}</span></div>
+    </div>
+    {% endfor %}
+    {% endmatch %}
+</div>
+<script>
+    (() => {
+        const detail = document.querySelector(".json-detail");
+        if (!detail) {
+            return;
+        }
+        const clearSelectionMode = () => {
+            detail.classList.remove("select-left", "select-right");
+        };
+        const clearSelectionRanges = () => {
+            const selection = window.getSelection();
+            if (selection) {
+                selection.removeAllRanges();
+            }
+        };
+        let pointerDown = false;
+        let dragged = false;
+        let downSide = null;
+
+        document.addEventListener(
+            "mousedown",
+            (event) => {
+                if (!event.target.closest(".json-detail")) {
+                    clearSelectionMode();
+                }
+            },
+            true
+        );
+        detail.addEventListener("mousedown", (event) => {
+            const cell = event.target.closest(".json-detail-cell");
+            if (!cell) {
+                clearSelectionMode();
+                clearSelectionRanges();
+                return;
+            }
+            pointerDown = true;
+            dragged = false;
+            if (cell.classList.contains("cell-left")) {
+                downSide = "left";
+            } else if (cell.classList.contains("cell-right")) {
+                downSide = "right";
+            } else {
+                downSide = null;
+            }
+            clearSelectionMode();
+            clearSelectionRanges();
+            if (downSide === "left") {
+                detail.classList.add("select-left");
+            } else if (downSide === "right") {
+                detail.classList.add("select-right");
+            }
+        });
+        detail.addEventListener("mousemove", (event) => {
+            if (!pointerDown) {
+                return;
+            }
+            if (!event.target.closest(".json-detail")) {
+                return;
+            }
+            dragged = true;
+        });
+        document.addEventListener(
+            "mouseup",
+            () => {
+                if (!pointerDown) {
+                    return;
+                }
+                pointerDown = false;
+                if (!dragged) {
+                    clearSelectionMode();
+                    clearSelectionRanges();
+                }
+                dragged = false;
+                downSide = null;
+            },
+            true
+        );
+    })();
+</script>

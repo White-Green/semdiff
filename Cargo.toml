@@ -11,6 +11,7 @@ semdiff-core = { path = "crates/semdiff-core" }
 semdiff-differ-audio = { path = "crates/semdiff-differ-audio" }
 semdiff-differ-binary = { path = "crates/semdiff-differ-binary" }
 semdiff-differ-image = { path = "crates/semdiff-differ-image" }
+semdiff-differ-json = { path = "crates/semdiff-differ-json" }
 semdiff-differ-text = { path = "crates/semdiff-differ-text" }
 semdiff-output = { path = "crates/semdiff-output" }
 semdiff-tree-fs = { path = "crates/semdiff-tree-fs" }
