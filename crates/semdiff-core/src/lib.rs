@@ -1,6 +1,9 @@
+use rayon::Scope;
 use std::cmp::Ordering;
 use std::error::Error;
 use std::mem;
+use std::ops::{Deref, DerefMut};
+use std::sync::Mutex;
 use thiserror::Error;
 
 #[cfg(test)]
@@ -104,7 +107,7 @@ mod __sealed {
     pub trait Sealed {}
 }
 
-pub trait DiffReport<T, Reporter>: __sealed::Sealed {
+pub trait DiffReport<T, Reporter>: __sealed::Sealed + Sync {
     fn diff(
         &self,
         name: &str,
@@ -200,176 +203,282 @@ pub fn calc_diff<N, R>(
     mut reporter: R,
 ) -> Result<(), CalcDiffError<N::TraverseError, R::Error>>
 where
-    N: NodeTraverse,
-    R: Reporter,
+    N: NodeTraverse + Send,
+    N::Leaf: Send,
+    R: Reporter + Sync,
 {
     reporter.start().map_err(CalcDiffError::ReporterError)?;
-    calc_diff_inner::<N, R, R::Error>(&mut String::new(), Some(expected), Some(actual), diff, &reporter)?;
+    let errors = Mutex::new(None);
+    rayon::scope(|scope| {
+        if let Err(error) = calc_diff_inner::<N, R, R::Error>(
+            &mut String::new(),
+            Some(expected),
+            Some(actual),
+            diff,
+            &reporter,
+            scope,
+            &errors,
+        ) {
+            record_error(&errors, error);
+        }
+    });
+    if let Some(error) = errors.lock().unwrap().take() {
+        return Err(error);
+    }
     reporter.finish().map_err(CalcDiffError::ReporterError)?;
-    return Ok(());
-    fn with_appended_name<T, E>(
-        name: &mut String,
-        segment: &str,
-        f: impl FnOnce(&mut String) -> Result<T, E>,
-    ) -> Result<T, E> {
-        let name_len = name.len();
+    Ok(())
+}
+
+fn calc_diff_inner<'scope, N, R, RE>(
+    name: &mut String,
+    expected: Option<N>,
+    actual: Option<N>,
+    diff: &'scope [Box<dyn DiffReport<N::Leaf, R>>],
+    reporter: &'scope R,
+    scope: &Scope<'scope>,
+    errors: &'scope Mutex<Option<CalcDiffError<N::TraverseError, RE>>>,
+) -> Result<(), CalcDiffError<N::TraverseError, RE>>
+where
+    N: NodeTraverse,
+    N::Leaf: Send,
+    R: Reporter + Sync,
+    RE: Send + 'scope,
+{
+    match (expected, actual) {
+        (Some(mut expected), Some(mut actual)) => {
+            let mut expected = expected
+                .children()
+                .map_err(CalcDiffError::TraverseError)?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(CalcDiffError::TraverseError)?;
+            let mut actual = actual
+                .children()
+                .map_err(CalcDiffError::TraverseError)?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(CalcDiffError::TraverseError)?;
+            expected.sort_unstable();
+            actual.sort_unstable();
+            let mut expected_iter = expected.into_iter().peekable();
+            let mut actual_iter = actual.into_iter().peekable();
+
+            loop {
+                let pair = match (expected_iter.peek(), actual_iter.peek()) {
+                    (Some(expected), Some(actual)) => match expected.cmp(actual) {
+                        Ordering::Less => (expected_iter.next(), None),
+                        Ordering::Equal => (expected_iter.next(), actual_iter.next()),
+                        Ordering::Greater => (None, actual_iter.next()),
+                    },
+                    (Some(_), None) => (expected_iter.next(), None),
+                    (None, Some(_)) => (None, actual_iter.next()),
+                    (None, None) => (None, None),
+                };
+                match pair {
+                    (None, None) => break,
+                    (Some(expected), Some(actual)) => match (expected, actual) {
+                        (TraversalNode::Node(expected), TraversalNode::Node(actual)) => {
+                            let mut name = AppendedName::new(name, expected.name());
+                            calc_diff_inner(&mut name, Some(expected), Some(actual), diff, reporter, scope, errors)?;
+                        }
+                        (TraversalNode::Leaf(expected), TraversalNode::Leaf(actual)) => {
+                            let name = AppendedName::new(name, expected.name());
+                            let name = name.clone();
+                            spawn_task(scope, errors, move || {
+                                run_diff::<N, R, RE>(diff, reporter, &name, &expected, &actual)
+                            });
+                        }
+                        _ => unreachable!(),
+                    },
+                    (Some(expected), None) => match expected {
+                        TraversalNode::Node(node) => {
+                            let mut name = AppendedName::new(name, node.name());
+                            calc_diff_inner(&mut name, Some(node), None, diff, reporter, scope, errors)?;
+                        }
+                        TraversalNode::Leaf(leaf) => {
+                            let name = AppendedName::new(name, leaf.name());
+                            let name = name.clone();
+                            spawn_task(scope, errors, move || {
+                                run_deleted::<N, R, RE>(diff, reporter, &name, &leaf)
+                            });
+                        }
+                    },
+                    (None, Some(actual)) => match actual {
+                        TraversalNode::Node(node) => {
+                            let mut name = AppendedName::new(name, node.name());
+                            calc_diff_inner(&mut name, None, Some(node), diff, reporter, scope, errors)?;
+                        }
+                        TraversalNode::Leaf(leaf) => {
+                            let name = AppendedName::new(name, leaf.name());
+                            let name = name.clone();
+                            spawn_task(scope, errors, move || {
+                                run_added::<N, R, RE>(diff, reporter, &name, &leaf)
+                            });
+                        }
+                    },
+                }
+            }
+        }
+        (Some(mut expected), None) => {
+            for result in expected.children().map_err(CalcDiffError::TraverseError)? {
+                let node = result.map_err(CalcDiffError::TraverseError)?;
+                match node {
+                    TraversalNode::Node(node) => {
+                        let mut name = AppendedName::new(name, node.name());
+                        calc_diff_inner(&mut name, Some(node), None, diff, reporter, scope, errors)?;
+                    }
+                    TraversalNode::Leaf(leaf) => {
+                        let name = AppendedName::new(name, leaf.name());
+                        let name = name.clone();
+                        spawn_task(scope, errors, move || {
+                            run_deleted::<N, R, RE>(diff, reporter, &name, &leaf)
+                        });
+                    }
+                }
+            }
+        }
+        (None, Some(mut actual)) => {
+            for result in actual.children().map_err(CalcDiffError::TraverseError)? {
+                let node = result.map_err(CalcDiffError::TraverseError)?;
+                match node {
+                    TraversalNode::Node(node) => {
+                        let mut name = AppendedName::new(name, node.name());
+                        calc_diff_inner(&mut name, Some(node), None, diff, reporter, scope, errors)?;
+                    }
+                    TraversalNode::Leaf(leaf) => {
+                        let name = AppendedName::new(name, leaf.name());
+                        let name = name.clone();
+                        spawn_task(scope, errors, move || {
+                            run_added::<N, R, RE>(diff, reporter, &name, &leaf)
+                        });
+                    }
+                }
+            }
+        }
+        (None, None) => {}
+    }
+    Ok(())
+}
+
+fn record_error<TE, RE>(errors: &Mutex<Option<CalcDiffError<TE, RE>>>, error: CalcDiffError<TE, RE>) {
+    let mut guard = errors.lock().unwrap();
+    if guard.is_none() {
+        *guard = Some(error);
+    }
+}
+
+fn spawn_task<'scope, TE, RE>(
+    scope: &Scope<'scope>,
+    errors: &'scope Mutex<Option<CalcDiffError<TE, RE>>>,
+    task: impl FnOnce() -> Result<(), CalcDiffError<TE, RE>> + Send + 'scope,
+) where
+    TE: Send + 'scope,
+    RE: Send + 'scope,
+{
+    scope.spawn(move |_| {
+        if let Err(error) = task() {
+            record_error(errors, error);
+        }
+    });
+}
+
+struct AppendedName<'a> {
+    original_len: usize,
+    name: &'a mut String,
+}
+
+impl AppendedName<'_> {
+    fn new<'a>(name: &'a mut String, segment: &str) -> AppendedName<'a> {
+        let original_len = name.len();
         if !name.is_empty() {
             name.push('/');
         }
         name.push_str(segment);
-        let result = f(name);
-        name.truncate(name_len);
-        result
+        AppendedName { original_len, name }
     }
-    fn calc_diff_inner<N, R, RE>(
-        name: &mut String,
-        expected: Option<N>,
-        actual: Option<N>,
-        diff: &[Box<dyn DiffReport<N::Leaf, R>>],
-        reporter: &R,
-    ) -> Result<(), CalcDiffError<N::TraverseError, RE>>
-    where
-        N: NodeTraverse,
-    {
-        let diff_fn = |name: &str, expected: &N::Leaf, actual: &N::Leaf| {
-            for diff in diff {
-                if let MayUnsupported::Ok(()) = diff
-                    .diff(name, expected.clone(), actual.clone(), reporter)
-                    .map_err(CalcDiffError::DiffError)?
-                {
-                    return Ok(());
-                }
-            }
-            Err(CalcDiffError::<N::TraverseError, RE>::NoDiffReportMatched)
-        };
-        let added_fn = |name: &str, actual: &N::Leaf| {
-            for diff in diff {
-                if let MayUnsupported::Ok(()) = diff
-                    .added(name, actual.clone(), reporter)
-                    .map_err(CalcDiffError::DiffError)?
-                {
-                    return Ok(());
-                }
-            }
-            Err(CalcDiffError::<N::TraverseError, RE>::NoDiffReportMatched)
-        };
-        let deleted_fn = |name: &str, expected: &N::Leaf| {
-            for diff in diff {
-                if let MayUnsupported::Ok(()) = diff
-                    .deleted(name, expected.clone(), reporter)
-                    .map_err(CalcDiffError::DiffError)?
-                {
-                    return Ok(());
-                }
-            }
-            Err(CalcDiffError::<N::TraverseError, RE>::NoDiffReportMatched)
-        };
-        match (expected, actual) {
-            (Some(mut expected), Some(mut actual)) => {
-                let mut expected = expected
-                    .children()
-                    .map_err(CalcDiffError::TraverseError)?
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err(CalcDiffError::TraverseError)?;
-                let mut actual = actual
-                    .children()
-                    .map_err(CalcDiffError::TraverseError)?
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err(CalcDiffError::TraverseError)?;
-                expected.sort_unstable();
-                actual.sort_unstable();
-                let mut expected_iter = expected.into_iter().peekable();
-                let mut actual_iter = actual.into_iter().peekable();
+}
 
-                loop {
-                    let pair = match (expected_iter.peek(), actual_iter.peek()) {
-                        (Some(expected), Some(actual)) => match expected.cmp(actual) {
-                            Ordering::Less => (expected_iter.next(), None),
-                            Ordering::Equal => (expected_iter.next(), actual_iter.next()),
-                            Ordering::Greater => (None, actual_iter.next()),
-                        },
-                        (Some(_), None) => (expected_iter.next(), None),
-                        (None, Some(_)) => (None, actual_iter.next()),
-                        (None, None) => (None, None),
-                    };
-                    match pair {
-                        (None, None) => break,
-                        (Some(expected), Some(actual)) => match (expected, actual) {
-                            (TraversalNode::Node(expected), TraversalNode::Node(actual)) => {
-                                let segment = expected.name().to_owned();
-                                with_appended_name(name, segment.as_str(), |name| {
-                                    calc_diff_inner(name, Some(expected), Some(actual), diff, reporter)
-                                })?;
-                            }
-                            (TraversalNode::Leaf(expected), TraversalNode::Leaf(actual)) => {
-                                let segment = expected.name().to_owned();
-                                with_appended_name(name, segment.as_str(), |name| diff_fn(name, &expected, &actual))?;
-                            }
-                            _ => unreachable!(),
-                        },
-                        (Some(expected), None) => match expected {
-                            TraversalNode::Node(node) => {
-                                let segment = node.name().to_owned();
-                                with_appended_name(name, segment.as_str(), |name| {
-                                    calc_diff_inner(name, Some(node), None, diff, reporter)
-                                })?;
-                            }
-                            TraversalNode::Leaf(leaf) => {
-                                let segment = leaf.name().to_owned();
-                                with_appended_name(name, segment.as_str(), |name| deleted_fn(name, &leaf))?;
-                            }
-                        },
-                        (None, Some(actual)) => match actual {
-                            TraversalNode::Node(node) => {
-                                let segment = node.name().to_owned();
-                                with_appended_name(name, segment.as_str(), |name| {
-                                    calc_diff_inner(name, None, Some(node), diff, reporter)
-                                })?;
-                            }
-                            TraversalNode::Leaf(leaf) => {
-                                let segment = leaf.name().to_owned();
-                                with_appended_name(name, segment.as_str(), |name| added_fn(name, &leaf))?;
-                            }
-                        },
-                    }
-                }
-            }
-            (Some(mut expected), None) => {
-                for result in expected.children().map_err(CalcDiffError::TraverseError)? {
-                    let node = result.map_err(CalcDiffError::TraverseError)?;
-                    match node {
-                        TraversalNode::Node(node) => {
-                            let segment = node.name().to_owned();
-                            with_appended_name(name, segment.as_str(), |name| {
-                                calc_diff_inner(name, Some(node), None, diff, reporter)
-                            })?;
-                        }
-                        TraversalNode::Leaf(leaf) => {
-                            let segment = leaf.name().to_owned();
-                            with_appended_name(name, segment.as_str(), |name| deleted_fn(name, &leaf))?;
-                        }
-                    }
-                }
-            }
-            (None, Some(mut actual)) => {
-                for result in actual.children().map_err(CalcDiffError::TraverseError)? {
-                    let node = result.map_err(CalcDiffError::TraverseError)?;
-                    match node {
-                        TraversalNode::Node(node) => {
-                            let segment = node.name().to_owned();
-                            with_appended_name(name, segment.as_str(), |name| {
-                                calc_diff_inner(name, Some(node), None, diff, reporter)
-                            })?;
-                        }
-                        TraversalNode::Leaf(leaf) => {
-                            let segment = leaf.name().to_owned();
-                            with_appended_name(name, segment.as_str(), |name| added_fn(name, &leaf))?;
-                        }
-                    }
-                }
-            }
-            (None, None) => {}
-        }
-        Ok(())
+impl Deref for AppendedName<'_> {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        self.name
     }
+}
+
+impl DerefMut for AppendedName<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.name
+    }
+}
+
+impl Drop for AppendedName<'_> {
+    fn drop(&mut self) {
+        self.name.truncate(self.original_len);
+    }
+}
+
+fn run_diff<N, R, RE>(
+    diff: &[Box<dyn DiffReport<N::Leaf, R>>],
+    reporter: &R,
+    name: &str,
+    expected: &N::Leaf,
+    actual: &N::Leaf,
+) -> Result<(), CalcDiffError<N::TraverseError, RE>>
+where
+    N: NodeTraverse,
+    N::Leaf: Clone,
+    R: Reporter + Sync,
+{
+    for diff in diff {
+        if let MayUnsupported::Ok(()) = diff
+            .diff(name, expected.clone(), actual.clone(), reporter)
+            .map_err(CalcDiffError::DiffError)?
+        {
+            return Ok(());
+        }
+    }
+    Err(CalcDiffError::<N::TraverseError, RE>::NoDiffReportMatched)
+}
+
+fn run_added<N, R, RE>(
+    diff: &[Box<dyn DiffReport<N::Leaf, R>>],
+    reporter: &R,
+    name: &str,
+    actual: &N::Leaf,
+) -> Result<(), CalcDiffError<N::TraverseError, RE>>
+where
+    N: NodeTraverse,
+    N::Leaf: Clone,
+    R: Reporter + Sync,
+{
+    for diff in diff {
+        if let MayUnsupported::Ok(()) = diff
+            .added(name, actual.clone(), reporter)
+            .map_err(CalcDiffError::DiffError)?
+        {
+            return Ok(());
+        }
+    }
+    Err(CalcDiffError::<N::TraverseError, RE>::NoDiffReportMatched)
+}
+
+fn run_deleted<N, R, RE>(
+    diff: &[Box<dyn DiffReport<N::Leaf, R>>],
+    reporter: &R,
+    name: &str,
+    expected: &N::Leaf,
+) -> Result<(), CalcDiffError<N::TraverseError, RE>>
+where
+    N: NodeTraverse,
+    N::Leaf: Clone,
+    R: Reporter + Sync,
+{
+    for diff in diff {
+        if let MayUnsupported::Ok(()) = diff
+            .deleted(name, expected.clone(), reporter)
+            .map_err(CalcDiffError::DiffError)?
+        {
+            return Ok(());
+        }
+    }
+    Err(CalcDiffError::<N::TraverseError, RE>::NoDiffReportMatched)
 }

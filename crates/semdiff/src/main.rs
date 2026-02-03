@@ -128,10 +128,7 @@ fn build_diff_calculators(config: &DiffConfig) -> DiffCalculators {
             config.audio_spectral_tolerance,
             config.audio_spectrogram_diff_rate_tolerance,
         ),
-        image: semdiff_differ_image::ImageDiffCalculator::new(
-            config.image_max_distance,
-            config.image_max_diff_ratio,
-        ),
+        image: semdiff_differ_image::ImageDiffCalculator::new(config.image_max_distance, config.image_max_diff_ratio),
         binary: semdiff_differ_binary::BinaryDiffCalculator,
     }
 }
@@ -157,12 +154,12 @@ where
         binary,
     } = build_diff_calculators(config);
     vec![
-        Box::new(DiffAndReport::new(json, semdiff_differ_json::JsonDiffReporter))
-            as Box<dyn DiffReport<FileLeaf, R>>,
-        Box::new(DiffAndReport::new(text, semdiff_differ_text::TextDiffReporter))
-            as Box<dyn DiffReport<FileLeaf, R>>,
-        Box::new(DiffAndReport::new(audio, semdiff_differ_audio::AudioDiffReporter::default()))
-            as Box<dyn DiffReport<FileLeaf, R>>,
+        Box::new(DiffAndReport::new(json, semdiff_differ_json::JsonDiffReporter)) as Box<dyn DiffReport<FileLeaf, R>>,
+        Box::new(DiffAndReport::new(text, semdiff_differ_text::TextDiffReporter)) as Box<dyn DiffReport<FileLeaf, R>>,
+        Box::new(DiffAndReport::new(
+            audio,
+            semdiff_differ_audio::AudioDiffReporter::default(),
+        )) as Box<dyn DiffReport<FileLeaf, R>>,
         Box::new(DiffAndReport::new(image, semdiff_differ_image::ImageDiffReporter))
             as Box<dyn DiffReport<FileLeaf, R>>,
         Box::new(DiffAndReport::new(binary, semdiff_differ_binary::BinaryDiffReporter))

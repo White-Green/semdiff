@@ -77,6 +77,29 @@ enum ReportEvent {
     Deleted(String),
 }
 
+fn event_sort_key(event: &ReportEvent) -> (u8, String) {
+    match event {
+        ReportEvent::Unchanged(name) => (0, name.clone()),
+        ReportEvent::Modified(name) => (1, name.clone()),
+        ReportEvent::Added(name) => (2, name.clone()),
+        ReportEvent::Deleted(name) => (3, name.clone()),
+        ReportEvent::Start => (4, String::new()),
+        ReportEvent::Finish => (5, String::new()),
+    }
+}
+
+fn assert_events_unordered(events: Vec<ReportEvent>, expected: Vec<ReportEvent>) {
+    assert!(events.len() >= 2);
+    assert_eq!(events.first(), Some(&ReportEvent::Start));
+    assert_eq!(events.last(), Some(&ReportEvent::Finish));
+
+    let mut actual_events = events[1..events.len() - 1].to_vec();
+    let mut expected_events = expected;
+    actual_events.sort_by_key(event_sort_key);
+    expected_events.sort_by_key(event_sort_key);
+    assert_eq!(actual_events, expected_events);
+}
+
 #[derive(Clone, Default)]
 struct TestReporter {
     events: Arc<Mutex<Vec<ReportEvent>>>,
@@ -233,16 +256,14 @@ fn calc_diff_reports_expected_events() {
     assert!(result.is_ok());
 
     let events = events.lock().unwrap().clone();
-    assert_eq!(
+    assert_events_unordered(
         events,
         vec![
-            ReportEvent::Start,
             ReportEvent::Added("dir/added".to_owned()),
             ReportEvent::Modified("dir/changed".to_owned()),
             ReportEvent::Deleted("dir/deleted".to_owned()),
             ReportEvent::Unchanged("dir/same".to_owned()),
-            ReportEvent::Finish,
-        ]
+        ],
     );
 }
 
@@ -293,18 +314,16 @@ fn calc_diff_reports_expected_events_with_mixed_children_order() {
     assert!(result.is_ok());
 
     let events = events.lock().unwrap().clone();
-    assert_eq!(
+    assert_events_unordered(
         events,
         vec![
-            ReportEvent::Start,
             ReportEvent::Added("dir/added".to_owned()),
             ReportEvent::Modified("dir/changed".to_owned()),
             ReportEvent::Unchanged("dir/same".to_owned()),
             ReportEvent::Added("added-root".to_owned()),
             ReportEvent::Deleted("removed".to_owned()),
             ReportEvent::Unchanged("root-leaf".to_owned()),
-            ReportEvent::Finish,
-        ]
+        ],
     );
 }
 
@@ -340,14 +359,12 @@ fn calc_diff_deletes_missing_node_children_in_mixed_order() {
     assert!(result.is_ok());
 
     let events = events.lock().unwrap().clone();
-    assert_eq!(
+    assert_events_unordered(
         events,
         vec![
-            ReportEvent::Start,
             ReportEvent::Deleted("dir/a".to_owned()),
             ReportEvent::Deleted("dir/sub/b".to_owned()),
             ReportEvent::Unchanged("root-leaf".to_owned()),
-            ReportEvent::Finish,
-        ]
+        ],
     );
 }
