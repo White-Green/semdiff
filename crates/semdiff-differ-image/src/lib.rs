@@ -1,3 +1,4 @@
+use color::{AlphaColor, Oklab, Srgb};
 use image::{ImageError, ImageFormat, Rgba, RgbaImage};
 use mime::Mime;
 use semdiff_core::{Diff, DiffCalculator, MayUnsupported};
@@ -33,6 +34,8 @@ pub struct ImageData {
 #[derive(Debug)]
 pub struct ImageDiffStat {
     pub diff_pixels: u64,
+    pub total_pixels: u64,
+    pub diff_ratio: f32,
 }
 
 impl Diff for ImageDiff {
@@ -67,34 +70,52 @@ pub enum ImageDiffError {
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ImageDiffCalculator {
-    max_channel_delta: u32,
+    max_distance: f32,
+    max_diff_ratio: f32,
 }
 
 impl ImageDiffCalculator {
-    pub fn new(max_channel_delta: u32) -> Self {
-        Self { max_channel_delta }
+    pub fn new(max_distance: f32, max_diff_ratio: f32) -> Self {
+        Self {
+            max_distance,
+            max_diff_ratio,
+        }
     }
 
     #[inline(always)]
     fn pixel_diff(&self, expected: Rgba<u8>, actual: Rgba<u8>) -> bool {
-        expected
-            .0
-            .iter()
-            .zip(actual.0.iter())
-            .map(|(&e, &a)| e.abs_diff(a) as u32)
-            .sum::<u32>()
-            > self.max_channel_delta
+        let (expected_oklab, expected_alpha) = Self::to_oklab_alpha(expected);
+        let (actual_oklab, actual_alpha) = Self::to_oklab_alpha(actual);
+        let delta_l = expected_oklab[0] - actual_oklab[0];
+        let delta_a = expected_oklab[1] - actual_oklab[1];
+        let delta_b = expected_oklab[2] - actual_oklab[2];
+        let delta_alpha = expected_alpha - actual_alpha;
+        let distance = (delta_l * delta_l + delta_a * delta_a + delta_b * delta_b + delta_alpha * delta_alpha).sqrt();
+        distance > self.max_distance
+    }
+
+    #[inline(always)]
+    fn to_oklab_alpha(pixel: Rgba<u8>) -> ([f32; 3], f32) {
+        let [r, g, b, a] = pixel.0;
+        let oklab = AlphaColor::<Srgb>::from_rgba8(r, g, b, a).convert::<Oklab>();
+        let [l, a, b, alpha] = oklab.components;
+        ([l, a, b], alpha)
     }
 
     fn compare(&self, expected: &RgbaImage, actual: &RgbaImage) -> (ImageDiffStat, RgbaImage) {
         let (expected_width, expected_height) = expected.dimensions();
         let (actual_width, actual_height) = actual.dimensions();
+        let max_width = expected_width.max(actual_width);
+        let max_height = expected_height.max(actual_height);
+        let min_width = expected_width.min(actual_width);
+        let min_height = expected_height.min(actual_height);
+        let total_pixels = u64::from(max_width) * u64::from(max_height);
         let mut diff_pixels = 0u64;
-        let mut diff_image = RgbaImage::new(expected_width.max(actual_width), expected_height.max(actual_height));
+        let mut diff_image = RgbaImage::new(max_width, max_height);
         const DIFF_PIXEL_COLOR: Rgba<u8> = Rgba([255, 0, 0, 180]);
         const SAME_PIXEL_COLOR: Rgba<u8> = Rgba([0, 0, 0, 0]);
-        for y in 0..expected_height.min(actual_height) {
-            for x in 0..expected_width.min(actual_width) {
+        for y in 0..min_height {
+            for x in 0..min_width {
                 let expected_pixel = *expected.get_pixel(x, y);
                 let actual_pixel = *actual.get_pixel(x, y);
                 let diff_pixel = if self.pixel_diff(expected_pixel, actual_pixel) {
@@ -105,18 +126,30 @@ impl ImageDiffCalculator {
                 };
                 diff_image.put_pixel(x, y, diff_pixel);
             }
-        }
-        for y in 0..expected_height.min(actual_height) {
-            for x in expected_width.min(actual_width)..expected_width.max(actual_width) {
+            for x in min_width..max_width {
+                diff_pixels += 1;
                 diff_image.put_pixel(x, y, DIFF_PIXEL_COLOR);
             }
         }
-        for y in expected_height.min(actual_height)..expected_height.max(actual_height) {
-            for x in 0..expected_width.min(actual_width) {
+        for y in min_height..max_height {
+            for x in 0..max_width {
+                diff_pixels += 1;
                 diff_image.put_pixel(x, y, DIFF_PIXEL_COLOR);
             }
         }
-        (ImageDiffStat { diff_pixels }, diff_image)
+        let diff_ratio = if total_pixels == 0 {
+            0.0
+        } else {
+            diff_pixels as f32 / total_pixels as f32
+        };
+        (
+            ImageDiffStat {
+                diff_pixels,
+                total_pixels,
+                diff_ratio,
+            },
+            diff_image,
+        )
     }
 }
 
@@ -157,9 +190,7 @@ impl DiffCalculator<FileLeaf> for ImageDiffCalculator {
             height: actual_image.height(),
             data: actual_image,
         };
-        let equal = diff_stat.diff_pixels == 0
-            && expected_data.width == actual_data.width
-            && expected_data.height == actual_data.height;
+        let equal = diff_stat.diff_ratio <= self.max_diff_ratio;
         Ok(MayUnsupported::Ok(ImageDiff {
             equal,
             expected: expected_data,
