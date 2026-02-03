@@ -3,5 +3,7 @@
 !/.gitignore
 !/Cargo.lock
 !/Cargo.toml
+!/LICENSE-Apache
+!/LICENSE-MIT
 !/rustfmt.toml
 !/taplo.toml
