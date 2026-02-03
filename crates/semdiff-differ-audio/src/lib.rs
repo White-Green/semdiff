@@ -25,6 +25,9 @@ pub mod report_html;
 pub mod report_json;
 pub mod report_summary;
 
+#[cfg(test)]
+mod tests;
+
 const WAVEFORM_WIDTH: u32 = 1024;
 const WAVEFORM_HEIGHT: u32 = 256;
 const SPECTROGRAM_WIDTH: u32 = 1024;
@@ -88,19 +91,19 @@ impl Diff for AudioDiff {
 }
 
 impl AudioDiff {
-    pub fn status(&self) -> &AudioDiffStatus {
+    fn status(&self) -> &AudioDiffStatus {
         &self.status
     }
 
-    pub fn expected(&self) -> &AudioData {
+    fn expected(&self) -> &AudioData {
         &self.expected
     }
 
-    pub fn actual(&self) -> &AudioData {
+    fn actual(&self) -> &AudioData {
         &self.actual
     }
 
-    pub fn diff_detail(&self) -> Option<&AudioDiffDetail> {
+    fn diff_detail(&self) -> Option<&AudioDiffDetail> {
         match &self.status {
             AudioDiffStatus::Equal(detail) | AudioDiffStatus::Different(detail) => Some(detail),
             AudioDiffStatus::Incomparable => None,
@@ -115,11 +118,11 @@ pub struct AudioDiffDetail {
 }
 
 impl AudioDiffDetail {
-    pub fn spectrogram_diff(&self) -> &[RgbaImage] {
+    fn spectrogram_diff(&self) -> &[RgbaImage] {
         &self.spectrogram_diff
     }
 
-    pub fn stat(&self) -> &AudioDiffStat {
+    fn stat(&self) -> &AudioDiffStat {
         &self.stat
     }
 }
@@ -143,31 +146,31 @@ pub struct AudioData {
 }
 
 impl AudioData {
-    pub fn mime(&self) -> &Mime {
+    fn mime(&self) -> &Mime {
         &self.mime
     }
 
-    pub fn sample_rate(&self) -> u32 {
+    fn sample_rate(&self) -> u32 {
         self.sample_rate
     }
 
-    pub fn channels(&self) -> u16 {
+    fn channels(&self) -> u16 {
         self.channels
     }
 
-    pub fn duration_seconds(&self) -> f32 {
+    fn duration_seconds(&self) -> f32 {
         self.duration_seconds
     }
 
-    pub fn waveform(&self) -> &[RgbaImage] {
+    fn waveform(&self) -> &[RgbaImage] {
         &self.waveform
     }
 
-    pub fn spectrogram(&self) -> &[RgbaImage] {
+    fn spectrogram(&self) -> &[RgbaImage] {
         &self.spectrogram
     }
 
-    pub fn content(&self) -> &[u8] {
+    fn content(&self) -> &[u8] {
         &self.content
     }
 }
@@ -202,6 +205,50 @@ impl Debug for AudioDiffCalculator {
     }
 }
 
+impl AudioDiffCalculator {
+    fn diff_decoded(&self, expected: &AudioDecoded, actual: &AudioDecoded) -> AudioDiffStatus {
+        if (expected.sample_rate, expected.channels) != (actual.sample_rate, actual.channels) {
+            return AudioDiffStatus::Incomparable;
+        }
+
+        let sample_rate = expected.sample_rate;
+        let max_shift_samples = (self.shift_tolerance_seconds * sample_rate as f32).round() as i32;
+        let (aligned_expected, aligned_actual, shift_samples) =
+            align_samples(expected.samples.clone(), actual.samples.clone(), max_shift_samples);
+
+        let expected_spectrogram = aligned_expected
+            .iter()
+            .map(|channel| self.spectrogram_analyzer.compute(channel))
+            .collect::<Vec<_>>();
+        let actual_spectrogram = aligned_actual
+            .iter()
+            .map(|channel| self.spectrogram_analyzer.compute(channel))
+            .collect::<Vec<_>>();
+
+        let (spectrogram_diff, spectrogram_diff_rate) =
+            self.build_diff_images(&expected_spectrogram, &actual_spectrogram);
+
+        let lufs_diff_db = summarize_channel_metrics(&aligned_expected, &aligned_actual);
+
+        let detail = AudioDiffDetail {
+            spectrogram_diff,
+            stat: AudioDiffStat {
+                spectrogram_diff_rate,
+                shift_samples,
+                lufs_diff_db,
+            },
+        };
+
+        let equal =
+            lufs_diff_db <= self.lufs_tolerance_db && spectrogram_diff_rate <= self.spectrogram_diff_rate_tolerance;
+        if equal {
+            AudioDiffStatus::Equal(detail)
+        } else {
+            AudioDiffStatus::Different(detail)
+        }
+    }
+}
+
 impl DiffCalculator<FileLeaf> for AudioDiffCalculator {
     type Error = convert::Infallible;
     type Diff = AudioDiff;
@@ -231,50 +278,7 @@ impl DiffCalculator<FileLeaf> for AudioDiffCalculator {
         let expected_data =
             build_audio_data_from_decoded(expected.kind, expected.content, &expected_decoded, &stat_decoded);
         let actual_data = build_audio_data_from_decoded(actual.kind, actual.content, &actual_decoded, &stat_decoded);
-        if (expected_decoded.sample_rate, expected_decoded.channels)
-            != (actual_decoded.sample_rate, actual_decoded.channels)
-        {
-            return Ok(MayUnsupported::Ok(AudioDiff {
-                status: AudioDiffStatus::Incomparable,
-                expected: expected_data,
-                actual: actual_data,
-            }));
-        }
-        let sample_rate = expected_decoded.sample_rate;
-        let max_shift_samples = (self.shift_tolerance_seconds * sample_rate as f32).round() as i32;
-        let (aligned_expected, aligned_actual, shift_samples) =
-            align_samples(expected_decoded.samples, actual_decoded.samples, max_shift_samples);
-
-        let expected_spectrogram = aligned_expected
-            .iter()
-            .map(|channel| self.spectrogram_analyzer.compute(channel))
-            .collect::<Vec<_>>();
-        let actual_spectrogram = aligned_actual
-            .iter()
-            .map(|channel| self.spectrogram_analyzer.compute(channel))
-            .collect::<Vec<_>>();
-
-        let (spectrogram_diff, spectrogram_diff_rate) =
-            self.build_diff_images(&expected_spectrogram, &actual_spectrogram);
-
-        let lufs_diff_db = summarize_channel_metrics(&aligned_expected, &aligned_actual);
-
-        let detail = AudioDiffDetail {
-            spectrogram_diff,
-            stat: AudioDiffStat {
-                spectrogram_diff_rate,
-                shift_samples,
-                lufs_diff_db,
-            },
-        };
-
-        let equal =
-            lufs_diff_db <= self.lufs_tolerance_db && spectrogram_diff_rate <= self.spectrogram_diff_rate_tolerance;
-        let status = if equal {
-            AudioDiffStatus::Equal(detail)
-        } else {
-            AudioDiffStatus::Different(detail)
-        };
+        let status = self.diff_decoded(&expected_decoded, &actual_decoded);
 
         Ok(MayUnsupported::Ok(AudioDiff {
             status,
@@ -848,27 +852,4 @@ fn render_spectrogram(spectrogram: &[[f32; SPECTROGRAM_DATA_HEIGHT]], stat: &Aud
         }
     }
     image
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn spectrogram_log_bin_range_covers_full_range() {
-        let first = spectrogram_log_bin_range(0);
-        let last = spectrogram_log_bin_range(SPECTROGRAM_HEIGHT - 1);
-        assert_eq!(first.start, 0);
-        assert!(first.end > first.start);
-        assert_eq!(last.end, SPECTROGRAM_DATA_HEIGHT);
-        assert!(last.start < last.end);
-
-        let mut prev = first;
-        for y in 1..SPECTROGRAM_HEIGHT {
-            let current = spectrogram_log_bin_range(y);
-            assert!(prev.start <= current.start);
-            assert!(prev.end <= current.end);
-            prev = current;
-        }
-    }
 }

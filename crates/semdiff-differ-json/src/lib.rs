@@ -12,6 +12,9 @@ pub mod report_html;
 pub mod report_json;
 pub mod report_summary;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Clone, Copy, Default)]
 pub struct JsonDiffReporter;
 
@@ -447,7 +450,7 @@ fn json_diff(expected: &Value, actual: &Value) -> Vec<JsonDiffLine> {
                 let k = self.expected_keys[old_index];
                 let expected_v = self.expected.get(k).unwrap();
                 let actual_v = self.actual.get(k).unwrap();
-                match dbg!(expected_v, actual_v) {
+                match (expected_v, actual_v) {
                     (expected @ Value::Null, actual @ Value::Null)
                     | (expected @ Value::Bool(_), actual @ Value::Bool(_))
                     | (expected @ Value::Number(_), actual @ Value::Number(_))
@@ -611,39 +614,4 @@ fn json_diff(expected: &Value, actual: &Value) -> Vec<JsonDiffLine> {
         }
     }
     result
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn test_json_diff() {
-        let expected = json! {{
-            "id": 1,
-            "profile": {
-                "first": "Taro",
-                "last": "Yamada"
-            },
-            "scores": [
-                10,
-                20,
-                30
-            ]
-        }};
-        let actual = json! {{
-            "profile": {
-                "last": "Yamada",
-                "first": "Taro"
-            },
-            "scores": [
-                10,
-                20,
-                40
-            ],
-            "id": 1
-        }};
-        json_diff(&expected, &actual);
-    }
 }

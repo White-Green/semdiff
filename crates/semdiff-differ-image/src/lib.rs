@@ -8,6 +8,9 @@ pub mod report_html;
 pub mod report_json;
 pub mod report_summary;
 
+#[cfg(test)]
+mod tests;
+
 pub struct ImageDiffReporter;
 
 #[derive(Debug)]

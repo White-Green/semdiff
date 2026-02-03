@@ -10,6 +10,9 @@ pub mod report_html;
 pub mod report_json;
 pub mod report_summary;
 
+#[cfg(test)]
+mod tests;
+
 pub struct TextDiffReporter;
 
 #[derive(Debug)]
@@ -26,14 +29,18 @@ impl Diff for TextDiff {
 }
 
 impl TextDiff {
-    pub fn diff(&self) -> similar::TextDiff<'_, '_, '_, [u8]> {
-        TextDiffConfig::default()
-            .algorithm(similar::Algorithm::Patience)
-            .diff_lines(&self.expected[..], &self.actual[..])
+    fn diff(&self) -> similar::TextDiff<'_, '_, '_, [u8]> {
+        text_diff_lines(&self.expected[..], &self.actual[..])
     }
 }
 
-pub fn is_text_file(kind: &Mime, body: &[u8]) -> bool {
+fn text_diff_lines<'a>(expected: &'a [u8], actual: &'a [u8]) -> similar::TextDiff<'a, 'a, 'a, [u8]> {
+    TextDiffConfig::default()
+        .algorithm(similar::Algorithm::Patience)
+        .diff_lines(expected, actual)
+}
+
+fn is_text_file(kind: &Mime, body: &[u8]) -> bool {
     if is_text_mime(kind) {
         return true;
     }

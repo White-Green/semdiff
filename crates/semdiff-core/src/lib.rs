@@ -3,6 +3,9 @@ use std::error::Error;
 use std::mem;
 use thiserror::Error;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug)]
 pub enum TraversalNode<Node, Leaf> {
     Node(Node),
