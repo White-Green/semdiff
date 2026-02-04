@@ -7,5 +7,6 @@
 !/Cargo.toml
 !/LICENSE-Apache
 !/LICENSE-MIT
+!/README.md
 !/rustfmt.toml
 !/taplo.toml
