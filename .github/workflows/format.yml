@@ -1,5 +1,7 @@
 name: Check format
-on: push
+on:
+  - push
+  - workflow_call
 
 jobs:
   rustfmt:

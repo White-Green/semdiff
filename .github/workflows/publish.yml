@@ -1,0 +1,95 @@
+name: publish
+on:
+  workflow_dispatch:
+
+jobs:
+  format:
+    uses: ./.github/workflows/format.yml
+
+  lint:
+    uses: ./.github/workflows/lint.yml
+
+  test:
+    uses: ./.github/workflows/test.yml
+
+  build_binary:
+    needs: [format, lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+
+      - uses: actions/cache@v5
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('Cargo.lock') }}
+
+      - run: cargo fetch --locked
+
+      - run: cargo build --release --locked
+
+      - id: package
+        run: |
+          set -euo pipefail
+
+          ARCHIVE_NAME="semdiff-x86_64-Linux.tar.gz"
+          mkdir -p dist
+          tar -czf "dist/${ARCHIVE_NAME}" -C target/release semdiff
+          echo "archive_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "archive_path=dist/${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.archive_name }}
+          path: ${{ steps.package.outputs.archive_path }}
+          if-no-files-found: error
+
+  publish:
+    needs: build_binary
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+
+      - uses: actions/cache@v5
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('Cargo.lock') }}
+
+      - run: cargo fetch --locked
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          merge-multiple: true
+
+      - run: |
+          set -euo pipefail
+          
+          VERSION=$(cargo metadata --format-version 1 | jq -r '.packages[] | select(.name == "semdiff-cli") | .version')
+          gh release create --draft "v${VERSION}" --fail-on-no-commits --generate-notes --target ${{ github.event.repository.default_branch }} --title "v${VERSION}" release-artifacts/*
+
+      - run: cargo publish --workspace --dry-run
