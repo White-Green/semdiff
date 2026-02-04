@@ -55,6 +55,7 @@ jobs:
           if-no-files-found: error
 
   publish:
+    if: github.actor == 'White-Green'
     needs: build_binary
     runs-on: ubuntu-latest
     permissions:
