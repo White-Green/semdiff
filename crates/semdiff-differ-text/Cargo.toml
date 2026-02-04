@@ -3,6 +3,7 @@ authors = { workspace = true }
 edition = { workspace = true }
 license = { workspace = true }
 name = "semdiff-differ-text"
+description = "Text diff calculator and reporters for semdiff."
 version = { workspace = true }
 
 [dependencies]

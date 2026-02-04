@@ -3,6 +3,7 @@ authors = { workspace = true }
 edition = { workspace = true }
 license = { workspace = true }
 name = "semdiff-output"
+description = "HTML, JSON, and summary report outputs for semdiff."
 version = { workspace = true }
 
 [dependencies]
