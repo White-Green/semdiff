@@ -7,42 +7,38 @@
     <style>
       :root {
         color-scheme: light dark;
-        --color-bg: #f9fafb;
-        --color-text: #1f2937;
-        --color-surface: #ffffff;
-        --color-surface-muted: #f9fafb;
-        --color-border: #e5e7eb;
-        --color-muted: #374151;
-        --color-panel: #f3f4f6;
-        --color-link: #2563eb;
-        --color-shadow: rgba(0,0,0,0.04);
-        --badge-unchanged-bg: #ecfeff;
-        --badge-unchanged-text: #155e75;
-        --badge-unchanged-border: #a5f3fc;
-        --badge-modified-bg: #fffbeb;
-        --badge-modified-text: #92400e;
-        --badge-modified-border: #fde68a;
-        --badge-added-bg: #ecfdf5;
-        --badge-added-text: #065f46;
-        --badge-added-border: #a7f3d0;
-        --badge-deleted-bg: #fef2f2;
-        --badge-deleted-text: #991b1b;
-        --badge-deleted-border: #fecaca;
-        --diff-same-bg: #f9fafb;
-        --diff-added-bg: #ecfdf5;
-        --diff-deleted-bg: #fef2f2;
-        --binary-preview-border: #cbd5f5;
-        --tint-waveform: #22c55e;
-        --tint-spectrogram: #0ea5e9;
-        --tint-spectrogram-diff: #ef4444;
-        --tint-image-diff: #ef4444;
+        --status-neutral-bg: #f9fafb;
+        --status-neutral-surface: #ffffff;
+        --status-neutral-surface-muted: #f9fafb;
+        --status-neutral-border: #e5e7eb;
+        --status-neutral-text: #1f2937;
+        --status-neutral-text-muted: #374151;
+        --status-neutral-text-subtle: #9ca3af;
+        --status-neutral-panel: #f3f4f6;
+        --status-neutral-link: #2563eb;
+        --status-neutral-shadow: rgba(0,0,0,0.04);
+        --status-unchanged-bg: #ecfeff;
+        --status-unchanged-text: #155e75;
+        --status-unchanged-border: #a5f3fc;
+        --status-modified-bg: #fffbeb;
+        --status-modified-text: #92400e;
+        --status-modified-border: #fde68a;
+        --status-added-bg: #ecfdf5;
+        --status-added-text: #065f46;
+        --status-added-border: #a7f3d0;
+        --status-deleted-bg: #fef2f2;
+        --status-deleted-text: #991b1b;
+        --status-deleted-border: #fecaca;
+        --diff-accent-1: #22c55e;
+        --diff-accent-2: #0ea5e9;
+        --diff-accent-3: #ef4444;
       }
       body {
         font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
         margin: 0;
         padding: 1.5rem;
-        background: var(--color-bg);
-        color: var(--color-text);
+        background: var(--status-neutral-bg);
+        color: var(--status-neutral-text);
       }
       .tint {
         display: inline-block;
@@ -57,16 +53,16 @@
         transform: translateX(-9999px);
       }
       .tint--waveform {
-        --c: var(--tint-waveform);
+        --c: var(--diff-accent-1);
       }
       .tint--spectrogram {
-        --c: var(--tint-spectrogram);
+        --c: var(--diff-accent-2);
       }
       .tint--spectrogram-diff {
-        --c: var(--tint-spectrogram-diff);
+        --c: var(--diff-accent-3);
       }
       .tint--image-diff {
-        --c: var(--tint-image-diff);
+        --c: var(--diff-accent-3);
       }
       h1 {
         margin: 0 0 0.75rem;
@@ -78,12 +74,12 @@
         margin-bottom: 1.25rem;
       }
       .summary-button {
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
+        background: var(--status-neutral-surface);
+        border: 1px solid var(--status-neutral-border);
         border-radius: 0.5rem;
         padding: 0.65rem 0.9rem;
         min-width: 8.5rem;
-        box-shadow: 0 0.0625rem 0.125rem var(--color-shadow);
+        box-shadow: 0 0.0625rem 0.125rem var(--status-neutral-shadow);
         display: inline-flex;
         align-items: center;
         justify-content: space-between;
@@ -93,7 +89,7 @@
         font: inherit;
       }
       .summary-button[aria-pressed="true"] {
-        outline: 0.125rem solid var(--color-link);
+        outline: 0.125rem solid var(--status-neutral-link);
         outline-offset: 0.125rem;
       }
       .summary-label {
@@ -103,7 +99,7 @@
         font-weight: 700;
       }
       .summary-button:focus-visible {
-        outline: 0.125rem solid var(--color-link);
+        outline: 0.125rem solid var(--status-neutral-link);
         outline-offset: 0.125rem;
       }
       .entry-groups {
@@ -146,12 +142,12 @@
         }
       }
       .entry {
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
+        background: var(--status-neutral-surface);
+        border: 1px solid var(--status-neutral-border);
         border-radius: 0.625rem;
         padding: 1rem;
         padding-top: 3.25rem;
-        box-shadow: 0 0.0625rem 0.125rem var(--color-shadow);
+        box-shadow: 0 0.0625rem 0.125rem var(--status-neutral-shadow);
         aspect-ratio: 1 / 1;
         display: flex;
         flex-direction: column;
@@ -165,11 +161,11 @@
         display: flex;
         gap: 0.375rem;
         padding: 0.375rem 0.625rem;
-        background: var(--color-surface);
-        border-top: 1px solid var(--color-border);
-        border-left: 1px solid var(--color-border);
-        border-right: 1px solid var(--color-border);
-        border-bottom: 1px solid var(--color-border);
+        background: var(--status-neutral-surface);
+        border-top: 1px solid var(--status-neutral-border);
+        border-left: 1px solid var(--status-neutral-border);
+        border-right: 1px solid var(--status-neutral-border);
+        border-bottom: 1px solid var(--status-neutral-border);
         border-top-left-radius: 0.625rem;
         border-bottom-right-radius: 0.625rem;
       }
@@ -178,13 +174,13 @@
         text-decoration: none;
       }
       .entry-link[href]:hover {
-        box-shadow: 0 0.125rem 0.375rem var(--color-shadow);
-        outline: 0.125rem solid var(--color-link);
+        box-shadow: 0 0.125rem 0.375rem var(--status-neutral-shadow);
+        outline: 0.125rem solid var(--status-neutral-link);
         outline-offset: 0;
         text-decoration: none;
       }
       .entry-link[href]:focus-visible {
-        outline: 0.125rem solid var(--color-link);
+        outline: 0.125rem solid var(--status-neutral-link);
         outline-offset: 0.125rem;
       }
       .entry-header {
@@ -208,29 +204,29 @@
         border: 1px solid transparent;
       }
       .badge.unchanged {
-        background: var(--badge-unchanged-bg);
-        color: var(--badge-unchanged-text);
-        border-color: var(--badge-unchanged-border);
+        background: var(--status-unchanged-bg);
+        color: var(--status-unchanged-text);
+        border-color: var(--status-unchanged-border);
       }
       .badge.modified {
-        background: var(--badge-modified-bg);
-        color: var(--badge-modified-text);
-        border-color: var(--badge-modified-border);
+        background: var(--status-modified-bg);
+        color: var(--status-modified-text);
+        border-color: var(--status-modified-border);
       }
       .badge.added {
-        background: var(--badge-added-bg);
-        color: var(--badge-added-text);
-        border-color: var(--badge-added-border);
+        background: var(--status-added-bg);
+        color: var(--status-added-text);
+        border-color: var(--status-added-border);
       }
       .badge.deleted {
-        background: var(--badge-deleted-bg);
-        color: var(--badge-deleted-text);
-        border-color: var(--badge-deleted-border);
+        background: var(--status-deleted-bg);
+        color: var(--status-deleted-text);
+        border-color: var(--status-deleted-border);
       }
       .preview {
         font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
         font-size: 1rem;
-        color: var(--color-muted);
+        color: var(--status-neutral-text-muted);
         flex: 1;
         overflow: hidden;
         display: flex;
@@ -238,8 +234,8 @@
         gap: 0.5rem;
       }
       .preview-box {
-        background: var(--color-surface-muted);
-        border: 1px solid var(--color-border);
+        background: var(--status-neutral-surface-muted);
+        border: 1px solid var(--status-neutral-border);
         border-radius: 0.5rem;
         padding: 0.5rem;
         flex: 1;
@@ -253,13 +249,13 @@
         height: 100%;
         border-radius: 0.375rem;
         overflow: hidden;
-        background: var(--color-panel);
+        background: var(--status-neutral-panel);
         display: flex;
         align-items: stretch;
         justify-content: flex-start;
         min-height: 0;
       }
-      a { color: var(--color-link); text-decoration: none; }
+      a { color: var(--status-neutral-link); text-decoration: none; }
       a:hover { text-decoration: underline; }
     </style>
   </head>

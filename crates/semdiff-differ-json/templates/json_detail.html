@@ -20,8 +20,8 @@
     }
 
     .json-detail-cell {
-        border-left: 1px solid var(--diff-border);
-        border-right: 1px solid var(--diff-border);
+        border-left: 1px solid var(--status-neutral-border);
+        border-right: 1px solid var(--status-neutral-border);
         padding: 0 0.5rem;
         vertical-align: top;
         line-height: 1.6;
@@ -31,31 +31,31 @@
     }
 
     .json-detail-header .json-detail-cell {
-        background: var(--diff-header-bg);
+        background: var(--status-neutral-panel);
         text-align: left;
         font-weight: 600;
     }
 
     .json-detail-cell.line-no {
         text-align: right;
-        color: var(--diff-line-number-text);
-        background: var(--diff-line-number-bg);
+        color: var(--status-neutral-text-subtle);
+        background: var(--status-neutral-bg);
     }
 
     .json-detail-cell.same {
-        background: var(--diff-same-bg);
+        background: var(--status-neutral-bg);
     }
 
     .json-detail-cell.added {
-        background: var(--diff-added-bg);
+        background: var(--status-added-bg);
     }
 
     .json-detail-cell.deleted {
-        background: var(--diff-deleted-bg);
+        background: var(--status-deleted-bg);
     }
 
     .json-detail-cell.empty {
-        background: var(--diff-empty-bg);
+        background: var(--status-neutral-surface);
     }
 
     .json-detail-cell .cell-text {

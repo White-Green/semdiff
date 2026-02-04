@@ -12,9 +12,9 @@
   }
 
   .image-detail-tab {
-    border: 1px solid var(--diff-border);
-    background: var(--diff-header-bg);
-    color: var(--color-text);
+    border: 1px solid var(--status-neutral-border);
+    background: var(--status-neutral-panel);
+    color: var(--status-neutral-text);
     border-radius: 999px;
     padding: 0.35rem 0.85rem;
     cursor: pointer;
@@ -22,8 +22,8 @@
   }
 
   .image-detail-tab[aria-selected="true"] {
-    background: var(--diff-added-bg);
-    border-color: var(--diff-added-border, var(--diff-border));
+    background: var(--status-added-bg);
+    border-color: var(--status-added-border);
     font-weight: 600;
   }
 
@@ -53,10 +53,10 @@
   }
 
   .image-detail-card {
-    border: 1px solid var(--diff-border);
+    border: 1px solid var(--status-neutral-border);
     border-radius: 0.375rem;
     padding: 0.75rem;
-    background: var(--diff-same-bg);
+    background: var(--status-neutral-bg);
     display: grid;
     gap: 0.5rem;
   }
@@ -71,24 +71,24 @@
   .image-detail-card h4 {
     margin: 0;
     font-size: 0.95rem;
-    color: var(--color-text);
+    color: var(--status-neutral-text);
   }
 
   .image-detail-card span {
     font-size: 0.85rem;
-    color: var(--color-muted);
+    color: var(--status-neutral-text-muted);
   }
 
   .image-detail-card img {
     max-width: 100%;
     height: auto;
     border-radius: 0.25rem;
-    background: var(--diff-empty-bg);
+    background: var(--status-neutral-surface);
   }
 
   .image-detail-card .tint {
     border-radius: 0.25rem;
-    background: var(--diff-empty-bg);
+    background: var(--status-neutral-surface);
   }
 
   .image-detail-card .tint__img {
@@ -110,7 +110,7 @@
   .image-side-item h5 {
     margin: 0;
     font-size: 0.85rem;
-    color: var(--color-text);
+    color: var(--status-neutral-text);
   }
 
   #image-view-pane-side .image-side-item img {
@@ -135,10 +135,10 @@
   }
 
   .image-overlay {
-    border: 1px solid var(--diff-border);
+    border: 1px solid var(--status-neutral-border);
     border-radius: 0.5rem;
     padding: 0.75rem;
-    background: var(--diff-same-bg);
+    background: var(--status-neutral-bg);
     display: grid;
     gap: 0.75rem;
   }
@@ -153,12 +153,12 @@
   .image-overlay-header h4 {
     margin: 0;
     font-size: 0.95rem;
-    color: var(--color-text);
+    color: var(--status-neutral-text);
   }
 
   .image-overlay-header span {
     font-size: 0.85rem;
-    color: var(--color-muted);
+    color: var(--status-neutral-text-muted);
   }
 
   .image-overlay-frame {
@@ -168,7 +168,7 @@
     max-height: var(--image-max-height, calc(100vh - 18.5rem));
     margin: 0 auto;
     overflow: hidden;
-    background: var(--diff-empty-bg);
+    background: var(--status-neutral-surface);
     border-radius: 0.25rem;
   }
 
@@ -198,7 +198,7 @@
     grid-template-columns: auto 1fr auto auto auto;
     align-items: center;
     gap: 0.5rem;
-    color: var(--color-muted);
+    color: var(--status-neutral-text-muted);
     font-size: 0.85rem;
   }
 
@@ -207,9 +207,9 @@
   }
 
   .image-overlay-controls button {
-    border: 1px solid var(--diff-border);
-    background: var(--diff-header-bg);
-    color: var(--color-text);
+    border: 1px solid var(--status-neutral-border);
+    background: var(--status-neutral-panel);
+    color: var(--status-neutral-text);
     border-radius: 0.25rem;
     padding: 0.25rem 0.5rem;
     cursor: pointer;
