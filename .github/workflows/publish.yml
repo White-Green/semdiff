@@ -91,5 +91,7 @@ jobs:
           
           VERSION=$(cargo metadata --format-version 1 | jq -r '.packages[] | select(.name == "semdiff-cli") | .version')
           gh release create --draft "v${VERSION}" --fail-on-no-commits --generate-notes --target ${{ github.event.repository.default_branch }} --title "v${VERSION}" release-artifacts/*
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - run: cargo publish --workspace --dry-run
