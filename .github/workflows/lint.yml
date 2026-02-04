@@ -1,0 +1,32 @@
+name: lint
+on: push
+
+jobs:
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ github.ref_name == github.event.repository.default_branch && format('{0}-cargo-', runner.os) }}
+
+      - uses: actions/cache@v5
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ github.ref_name == github.event.repository.default_branch && format('{0}-cargo-clippy-', runner.os) }}
+
+      - run: cargo fetch --locked
+
+      - run: cargo clippy --all-targets --all-features --tests -- -D warnings
