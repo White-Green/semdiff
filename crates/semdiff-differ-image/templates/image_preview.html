@@ -8,20 +8,26 @@
     padding: 0.25rem;
   }
 
-  .image-preview img {
+  .image-preview .tint {
+    border-radius: 0.25rem;
+    background: var(--diff-empty-bg);
+  }
+
+  .image-preview .tint__img {
     max-width: 100%;
     max-height: 100%;
     width: 100%;
     height: 100%;
     object-fit: contain;
     border-radius: 0.25rem;
-    background: var(--diff-empty-bg);
   }
 </style>
 <div class="image-preview">
   {% match self.body %}
   {% when ImagePreviewBody::Modified with { image } %}
-  <img src="{{ image.src }}" alt="{{ image.label }} image" />
+  <span class="tint tint--image-diff">
+    <img class="tint__img" src="{{ image.src }}" alt="{{ image.label }} image" />
+  </span>
   {% when ImagePreviewBody::Single with { image } %}
   <img src="{{ image.src }}" alt="{{ image.label }} image" />
   {% endmatch %}

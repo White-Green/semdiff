@@ -32,6 +32,10 @@
         --diff-added-bg: #ecfdf5;
         --diff-deleted-bg: #fef2f2;
         --binary-preview-border: #cbd5f5;
+        --tint-waveform: #22c55e;
+        --tint-spectrogram: #0ea5e9;
+        --tint-spectrogram-diff: #ef4444;
+        --tint-image-diff: #ef4444;
       }
       body {
         font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -39,6 +43,30 @@
         padding: 1.5rem;
         background: var(--color-bg);
         color: var(--color-text);
+      }
+      .tint {
+        display: inline-block;
+        overflow: hidden;
+        max-width: 100%;
+      }
+      .tint__img {
+        width: 100%;
+        height: auto;
+        display: block;
+        filter: drop-shadow(9999px 0 0 var(--c));
+        transform: translateX(-9999px);
+      }
+      .tint--waveform {
+        --c: var(--tint-waveform);
+      }
+      .tint--spectrogram {
+        --c: var(--tint-spectrogram);
+      }
+      .tint--spectrogram-diff {
+        --c: var(--tint-spectrogram-diff);
+      }
+      .tint--image-diff {
+        --c: var(--tint-image-diff);
       }
       h1 {
         margin: 0 0 0.75rem;

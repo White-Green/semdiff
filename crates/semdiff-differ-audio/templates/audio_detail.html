@@ -36,14 +36,18 @@
     gap: 0.75rem;
   }
 
-  .audio-detail__media img,
-  .audio-detail__diff img {
-    width: 100%;
-    height: auto;
-    max-width: 100%;
+  .audio-detail__media .tint,
+  .audio-detail__diff .tint {
     border: 1px solid var(--diff-border);
     border-radius: 0.25rem;
     background: var(--diff-empty-bg);
+  }
+
+  .audio-detail__media .tint__img,
+  .audio-detail__diff .tint__img {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
     object-fit: contain;
   }
 
@@ -74,8 +78,12 @@
       <div class="audio-detail__media-group">
         {% for (waveform_image, spectrogram_image) in expected.waveforms.iter().zip(expected.spectrograms.iter()) %}
         <div class="audio-detail__media-pair">
-          <img src="{{ waveform_image.uri }}" alt="Expected waveform" width="{{ waveform_image.width }}" height="{{ waveform_image.height }}" />
-          <img src="{{ spectrogram_image.uri }}" alt="Expected spectrogram" width="{{ spectrogram_image.width }}" height="{{ spectrogram_image.height }}" />
+          <span class="tint tint--waveform">
+            <img class="tint__img" src="{{ waveform_image.uri }}" alt="Expected waveform" width="{{ waveform_image.width }}" height="{{ waveform_image.height }}" />
+          </span>
+          <span class="tint tint--spectrogram">
+            <img class="tint__img" src="{{ spectrogram_image.uri }}" alt="Expected spectrogram" width="{{ spectrogram_image.width }}" height="{{ spectrogram_image.height }}" />
+          </span>
         </div>
         {% endfor %}
       </div>
@@ -91,8 +99,12 @@
       <div class="audio-detail__media-group">
         {% for (waveform_image, spectrogram_image) in actual.waveforms.iter().zip(actual.spectrograms.iter()) %}
         <div class="audio-detail__media-pair">
-          <img src="{{ waveform_image.uri }}" alt="Actual waveform" width="{{ waveform_image.width }}" height="{{ waveform_image.height }}" />
-          <img src="{{ spectrogram_image.uri }}" alt="Actual spectrogram" width="{{ spectrogram_image.width }}" height="{{ spectrogram_image.height }}" />
+          <span class="tint tint--waveform">
+            <img class="tint__img" src="{{ waveform_image.uri }}" alt="Actual waveform" width="{{ waveform_image.width }}" height="{{ waveform_image.height }}" />
+          </span>
+          <span class="tint tint--spectrogram">
+            <img class="tint__img" src="{{ spectrogram_image.uri }}" alt="Actual spectrogram" width="{{ spectrogram_image.width }}" height="{{ spectrogram_image.height }}" />
+          </span>
         </div>
         {% endfor %}
       </div>
@@ -108,7 +120,9 @@
       <div class="audio-detail__diff-group">
         {% for image in spectrogram_diff %}
         <div class="audio-detail__diff-pair">
-          <img src="{{ image.uri }}" alt="Spectrogram diff" width="{{ image.width }}" height="{{ image.height }}" />
+          <span class="tint tint--spectrogram-diff">
+            <img class="tint__img" src="{{ image.uri }}" alt="Spectrogram diff" width="{{ image.width }}" height="{{ image.height }}" />
+          </span>
         </div>
         {% endfor %}
       </div>
@@ -123,8 +137,12 @@
       <div class="audio-detail__media-group">
         {% for (waveform_image, spectrogram_image) in data.waveforms.iter().zip(data.spectrograms.iter()) %}
         <div class="audio-detail__media-pair">
-          <img src="{{ waveform_image.uri }}" alt="Waveform" width="{{ waveform_image.width }}" height="{{ waveform_image.height }}" />
-          <img src="{{ spectrogram_image.uri }}" alt="Spectrogram" width="{{ spectrogram_image.width }}" height="{{ spectrogram_image.height }}" />
+          <span class="tint tint--waveform">
+            <img class="tint__img" src="{{ waveform_image.uri }}" alt="Waveform" width="{{ waveform_image.width }}" height="{{ waveform_image.height }}" />
+          </span>
+          <span class="tint tint--spectrogram">
+            <img class="tint__img" src="{{ spectrogram_image.uri }}" alt="Spectrogram" width="{{ spectrogram_image.width }}" height="{{ spectrogram_image.height }}" />
+          </span>
         </div>
         {% endfor %}
       </div>

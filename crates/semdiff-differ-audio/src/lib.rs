@@ -390,7 +390,7 @@ impl AudioDiffCalculator {
         actual: &[[f32; SPECTROGRAM_DATA_HEIGHT]],
     ) -> (RgbaImage, f64) {
         let spectrogram_len = expected.len().max(actual.len());
-        let mut diff_image = RgbaImage::from_pixel(SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT, Rgba([0, 0, 0, 0]));
+        let mut diff_image = RgbaImage::from_pixel(SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT, Rgba([255, 255, 255, 0]));
         let mut diff_count = 0usize;
         let mut total_count = 0usize;
         assert!(SPECTROGRAM_DATA_HEIGHT >= SPECTROGRAM_HEIGHT as usize);
@@ -419,8 +419,8 @@ impl AudioDiffCalculator {
                         SPECTROGRAM_HEIGHT - y - 1,
                         Rgba([
                             255,
-                            0,
-                            0,
+                            255,
+                            255,
                             (diff_sum as f64 / (x_range.len() * y_range.len()) as f64 * 255.0) as u8,
                         ]),
                     );
@@ -443,7 +443,7 @@ impl AudioDiffCalculator {
                             diff_count += 1;
                         }
                     }
-                    let color = Rgba([255, 0, 0, (diff_sum as f64 / y_range.len() as f64 * 255.0) as u8]);
+                    let color = Rgba([255, 255, 255, (diff_sum as f64 / y_range.len() as f64 * 255.0) as u8]);
                     for x in image_x_range.clone() {
                         diff_image.put_pixel(x, SPECTROGRAM_HEIGHT - y - 1, color);
                     }
@@ -609,9 +609,9 @@ fn loudness_db(samples: &[f32]) -> f32 {
 }
 
 fn render_waveform(samples: &[f32], stat: &AudioStat, sample_rate: u32) -> RgbaImage {
-    const WAVEFORM_COLOR: Rgba<u8> = Rgba([0, 255, 0, 255]);
+    const WAVEFORM_COLOR: Rgba<u8> = Rgba([255, 255, 255, 255]);
     let clip = (stat.signal_max * 1.2).clamp(LOG_EPSILON, 1.0);
-    let mut image = RgbaImage::from_pixel(WAVEFORM_WIDTH, WAVEFORM_HEIGHT, Rgba([0, 0, 0, 0]));
+    let mut image = RgbaImage::from_pixel(WAVEFORM_WIDTH, WAVEFORM_HEIGHT, Rgba([255, 255, 255, 0]));
     if stat.duration <= 0.0 || sample_rate == 0 {
         return image;
     }
@@ -810,7 +810,7 @@ impl SpectrogramAnalyzer {
 }
 
 fn render_spectrogram(spectrogram: &[[f32; SPECTROGRAM_DATA_HEIGHT]], stat: &AudioStat, sample_rate: u32) -> RgbaImage {
-    let mut image = RgbaImage::from_pixel(SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT, Rgba([0, 0, 0, 0]));
+    let mut image = RgbaImage::from_pixel(SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT, Rgba([255, 255, 255, 0]));
     if spectrogram.is_empty() || stat.duration <= 0.0 || sample_rate == 0 {
         return image;
     }
@@ -847,7 +847,7 @@ fn render_spectrogram(spectrogram: &[[f32; SPECTROGRAM_DATA_HEIGHT]], stat: &Aud
             image.put_pixel(
                 x,
                 SPECTROGRAM_HEIGHT - y - 1,
-                Rgba([0, 0, 255, (intensity * 255.0) as u8]),
+                Rgba([255, 255, 255, (intensity * 255.0) as u8]),
             );
         }
     }

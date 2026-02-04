@@ -86,6 +86,15 @@
     background: var(--diff-empty-bg);
   }
 
+  .image-detail-card .tint {
+    border-radius: 0.25rem;
+    background: var(--diff-empty-bg);
+  }
+
+  .image-detail-card .tint__img {
+    background: transparent;
+  }
+
   .image-side-compare {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -246,7 +255,9 @@
             <h4>diff</h4>
             <span>{{ diff.width }} × {{ diff.height }}</span>
           </div>
-          <img src="{{ diff.uri }}" alt="diff image" />
+          <span class="tint tint--image-diff">
+            <img class="tint__img" src="{{ diff.uri }}" alt="diff image" />
+          </span>
         </div>
       </div>
     </div>

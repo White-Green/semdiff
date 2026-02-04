@@ -27,6 +27,7 @@ struct AudioPreviewTemplate {
 struct AudioPreviewImage {
     src: String,
     label: String,
+    kind: String,
     width: u32,
     height: u32,
 }
@@ -280,12 +281,14 @@ fn build_preview_images(
     image_files: &[PreviewImageFile],
     label_prefix: &str,
 ) -> Vec<AudioPreviewImage> {
+    let kind = label_prefix.replace(' ', "-");
     image_files
         .iter()
         .enumerate()
         .map(|(index, file)| AudioPreviewImage {
             src: reporter.detail_asset_path(&file.path),
             label: format!("{label_prefix} ch{}", index + 1),
+            kind: kind.clone(),
             width: file.width,
             height: file.height,
         })
@@ -311,7 +314,7 @@ fn merge_channel_images(images: &[RgbaImage]) -> Option<RgbaImage> {
     let first = images.first()?;
     let width = first.width();
     let height = first.height();
-    let mut merged = RgbaImage::from_pixel(width, height, Rgba([0, 0, 0, 0]));
+    let mut merged = RgbaImage::from_pixel(width, height, Rgba([255, 255, 255, 0]));
     for image in images {
         for y in 0..height {
             for x in 0..width {

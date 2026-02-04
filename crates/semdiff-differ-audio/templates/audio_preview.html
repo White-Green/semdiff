@@ -19,7 +19,7 @@
     background: var(--diff-empty-bg);
   }
 
-  .audio-preview__image img {
+  .audio-preview__image .tint__img {
     width: 100%;
     height: auto;
     max-width: 100%;
@@ -36,7 +36,9 @@
   <div class="audio-preview__images">
     {% for image in images %}
     <div class="audio-preview__image">
-      <img src="{{ image.src }}" alt="{{ image.label }}" width="{{ image.width }}" height="{{ image.height }}" />
+      <span class="tint tint--{{ image.kind }}">
+        <img class="tint__img" src="{{ image.src }}" alt="{{ image.label }}" width="{{ image.width }}" height="{{ image.height }}" />
+      </span>
     </div>
     {% endfor %}
   </div>
@@ -45,7 +47,9 @@
   <div class="audio-preview__images">
     {% for image in images %}
     <div class="audio-preview__image">
-      <img src="{{ image.src }}" alt="{{ image.label }}" width="{{ image.width }}" height="{{ image.height }}" />
+      <span class="tint tint--{{ image.kind }}">
+        <img class="tint__img" src="{{ image.src }}" alt="{{ image.label }}" width="{{ image.width }}" height="{{ image.height }}" />
+      </span>
     </div>
     {% endfor %}
   </div>

@@ -112,8 +112,8 @@ impl ImageDiffCalculator {
         let total_pixels = u64::from(max_width) * u64::from(max_height);
         let mut diff_pixels = 0u64;
         let mut diff_image = RgbaImage::new(max_width, max_height);
-        const DIFF_PIXEL_COLOR: Rgba<u8> = Rgba([255, 0, 0, 180]);
-        const SAME_PIXEL_COLOR: Rgba<u8> = Rgba([0, 0, 0, 0]);
+        const DIFF_PIXEL_COLOR: Rgba<u8> = Rgba([255, 255, 255, 180]);
+        const SAME_PIXEL_COLOR: Rgba<u8> = Rgba([255, 255, 255, 0]);
         for y in 0..min_height {
             for x in 0..min_width {
                 let expected_pixel = *expected.get_pixel(x, y);
