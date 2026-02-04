@@ -9,13 +9,13 @@ license = "Apache-2.0 OR MIT"
 version = "0.1.0"
 
 [workspace.dependencies]
-semdiff-core = { path = "crates/semdiff-core" }
-semdiff-differ-audio = { path = "crates/semdiff-differ-audio" }
-semdiff-differ-binary = { path = "crates/semdiff-differ-binary" }
-semdiff-differ-image = { path = "crates/semdiff-differ-image" }
-semdiff-differ-json = { path = "crates/semdiff-differ-json" }
-semdiff-differ-text = { path = "crates/semdiff-differ-text" }
-semdiff-output = { path = "crates/semdiff-output" }
+semdiff-core = { path = "crates/semdiff-core", version = "0.1.0" }
+semdiff-differ-audio = { path = "crates/semdiff-differ-audio", version = "0.1.0" }
+semdiff-differ-binary = { path = "crates/semdiff-differ-binary", version = "0.1.0" }
+semdiff-differ-image = { path = "crates/semdiff-differ-image", version = "0.1.0" }
+semdiff-differ-json = { path = "crates/semdiff-differ-json", version = "0.1.0" }
+semdiff-differ-text = { path = "crates/semdiff-differ-text", version = "0.1.0" }
+semdiff-output = { path = "crates/semdiff-output", version = "0.1.0" }
 
 askama = { default-features = false, features = [
   "alloc",
