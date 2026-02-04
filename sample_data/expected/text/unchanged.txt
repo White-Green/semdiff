@@ -1,0 +1,3 @@
+Hello semdiff
+This is unchanged.
+Status: ok

@@ -1,0 +1,2 @@
+This file exists only in actual.
+It represents an added text file.
