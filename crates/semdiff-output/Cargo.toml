@@ -1,9 +1,10 @@
 [package]
 authors = { workspace = true }
+description = "HTML, JSON, and summary report outputs for semdiff."
 edition = { workspace = true }
 license = { workspace = true }
 name = "semdiff-output"
-description = "HTML, JSON, and summary report outputs for semdiff."
+repository = { workspace = true }
 version = { workspace = true }
 
 [dependencies]

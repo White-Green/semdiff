@@ -1,9 +1,10 @@
 [package]
 authors = { workspace = true }
+description = "Binary diff calculator and reporters for semdiff."
 edition = { workspace = true }
 license = { workspace = true }
 name = "semdiff-differ-binary"
-description = "Binary diff calculator and reporters for semdiff."
+repository = { workspace = true }
 version = { workspace = true }
 
 [dependencies]

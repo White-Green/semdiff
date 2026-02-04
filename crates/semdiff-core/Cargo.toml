@@ -1,9 +1,10 @@
 [package]
 authors = { workspace = true }
+description = "Core traversal, diff calculation, and reporting traits for semdiff."
 edition = { workspace = true }
 license = { workspace = true }
 name = "semdiff-core"
-description = "Core traversal, diff calculation, and reporting traits for semdiff."
+repository = { workspace = true }
 version = { workspace = true }
 
 [dependencies]
