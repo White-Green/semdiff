@@ -1207,13 +1207,16 @@ dependencies = [
  "semdiff-differ-json",
  "semdiff-differ-text",
  "semdiff-output",
- "semdiff-tree-fs",
 ]
 
 [[package]]
 name = "semdiff-core"
 version = "0.1.0"
 dependencies = [
+ "infer",
+ "memmap2",
+ "mime",
+ "mime_guess",
  "rayon",
  "thiserror",
 ]
@@ -1230,7 +1233,6 @@ dependencies = [
  "rustfft",
  "semdiff-core",
  "semdiff-output",
- "semdiff-tree-fs",
  "serde",
  "symphonia",
  "thiserror",
@@ -1244,7 +1246,6 @@ dependencies = [
  "memmap2",
  "semdiff-core",
  "semdiff-output",
- "semdiff-tree-fs",
  "serde",
  "similar",
  "thiserror",
@@ -1260,7 +1261,6 @@ dependencies = [
  "mime",
  "semdiff-core",
  "semdiff-output",
- "semdiff-tree-fs",
  "serde",
  "thiserror",
 ]
@@ -1273,7 +1273,6 @@ dependencies = [
  "mime",
  "semdiff-core",
  "semdiff-output",
- "semdiff-tree-fs",
  "serde",
  "serde_json",
  "similar",
@@ -1289,7 +1288,6 @@ dependencies = [
  "mime",
  "semdiff-core",
  "semdiff-output",
- "semdiff-tree-fs",
  "serde",
  "similar",
  "thiserror",
@@ -1304,18 +1302,6 @@ dependencies = [
  "semdiff-core",
  "serde",
  "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "semdiff-tree-fs"
-version = "0.1.0"
-dependencies = [
- "infer",
- "memmap2",
- "mime",
- "mime_guess",
- "semdiff-core",
  "thiserror",
 ]
 

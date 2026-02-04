@@ -1,7 +1,7 @@
 use crate::{TextDiff, TextDiffReporter, is_text_file};
+use semdiff_core::fs::FileLeaf;
 use semdiff_core::{DetailReporter, MayUnsupported};
 use semdiff_output::json::JsonReport;
-use semdiff_tree_fs::FileLeaf;
 use serde::Serialize;
 use similar::ChangeTag;
 use std::convert;

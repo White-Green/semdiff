@@ -1,6 +1,6 @@
+use crate::{LeafTraverse, NodeTraverse, TraversalNode};
 use memmap2::Mmap;
 use mime::Mime;
-use semdiff_core::{LeafTraverse, NodeTraverse, TraversalNode};
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};

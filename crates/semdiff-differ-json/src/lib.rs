@@ -1,6 +1,6 @@
 use mime::Mime;
+use semdiff_core::fs::FileLeaf;
 use semdiff_core::{Diff, DiffCalculator, MayUnsupported};
-use semdiff_tree_fs::FileLeaf;
 use serde_json::Value;
 use similar::algorithms::DiffHook;
 use std::cmp::Reverse;

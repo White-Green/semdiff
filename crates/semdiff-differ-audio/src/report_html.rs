@@ -1,9 +1,9 @@
 use crate::{AudioData, AudioDiff, AudioDiffReporter, audio_extension};
 use askama::Template;
 use image::{ImageError, ImageFormat, Rgba, RgbaImage};
+use semdiff_core::fs::FileLeaf;
 use semdiff_core::{DetailReporter, MayUnsupported};
 use semdiff_output::html::{HtmlReport, HtmlReportError};
-use semdiff_tree_fs::FileLeaf;
 use std::io::Write;
 use thiserror::Error;
 

@@ -18,4 +18,3 @@ semdiff-differ-image = { workspace = true }
 semdiff-differ-json = { workspace = true }
 semdiff-differ-text = { workspace = true }
 semdiff-output = { workspace = true }
-semdiff-tree-fs = { workspace = true }

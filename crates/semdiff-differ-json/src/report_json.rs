@@ -1,7 +1,7 @@
 use crate::{JsonDiff, JsonDiffReporter, is_json_mime, try_into_json};
+use semdiff_core::fs::FileLeaf;
 use semdiff_core::{DetailReporter, MayUnsupported};
 use semdiff_output::json::JsonReport;
-use semdiff_tree_fs::FileLeaf;
 use std::convert;
 
 const COMPARES_NAME: &str = "json";

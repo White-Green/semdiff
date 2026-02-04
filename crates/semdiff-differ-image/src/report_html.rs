@@ -1,9 +1,9 @@
 use crate::{ImageDiff, ImageDiffReporter, image_format};
 use askama::Template;
 use image::{ImageError, ImageFormat, RgbaImage};
+use semdiff_core::fs::FileLeaf;
 use semdiff_core::{DetailReporter, MayUnsupported};
 use semdiff_output::html::{HtmlReport, HtmlReportError};
-use semdiff_tree_fs::FileLeaf;
 use thiserror::Error;
 
 const COMPARES_NAME: &str = "image";

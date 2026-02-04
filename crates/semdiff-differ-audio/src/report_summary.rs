@@ -1,7 +1,7 @@
 use crate::{AudioDiff, AudioDiffReporter, audio_extension};
+use semdiff_core::fs::FileLeaf;
 use semdiff_core::{DetailReporter, MayUnsupported};
 use semdiff_output::summary::SummaryReport;
-use semdiff_tree_fs::FileLeaf;
 use std::convert;
 
 impl<W> DetailReporter<AudioDiff, FileLeaf, SummaryReport<W>> for AudioDiffReporter {

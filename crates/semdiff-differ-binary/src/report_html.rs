@@ -1,8 +1,8 @@
 use crate::{BinaryDiff, BinaryDiffReporter};
 use askama::Template;
+use semdiff_core::fs::FileLeaf;
 use semdiff_core::{DetailReporter, MayUnsupported};
 use semdiff_output::html::{HtmlReport, HtmlReportError};
-use semdiff_tree_fs::FileLeaf;
 use similar::ChangeTag;
 use similar::utils::TextDiffRemapper;
 use std::fmt;

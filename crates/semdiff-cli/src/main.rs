@@ -1,9 +1,9 @@
 use clap::Parser;
+use semdiff_core::fs::{FileLeaf, FsNode};
 use semdiff_core::{DetailReporter, DiffAndReport, DiffCalculator, DiffReport};
 use semdiff_output::html::HtmlReport;
 use semdiff_output::json::JsonReport;
 use semdiff_output::summary::SummaryReport;
-use semdiff_tree_fs::{FileLeaf, FsNode};
 use std::ffi::OsStr;
 use std::fs::File;
 use std::io;

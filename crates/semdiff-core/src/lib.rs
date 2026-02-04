@@ -6,6 +6,8 @@ use std::ops::{Deref, DerefMut};
 use std::sync::Mutex;
 use thiserror::Error;
 
+pub mod fs;
+
 #[cfg(test)]
 mod tests;
 

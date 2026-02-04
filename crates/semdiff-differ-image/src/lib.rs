@@ -1,8 +1,8 @@
 use color::{AlphaColor, Oklab, Srgb};
 use image::{ImageError, ImageFormat, Rgba, RgbaImage};
 use mime::Mime;
+use semdiff_core::fs::FileLeaf;
 use semdiff_core::{Diff, DiffCalculator, MayUnsupported};
-use semdiff_tree_fs::FileLeaf;
 use thiserror::Error;
 
 pub mod report_html;

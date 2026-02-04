@@ -1,8 +1,8 @@
 use crate::{ChangeTag, JsonDiff, JsonDiffBody, JsonDiffLine, JsonDiffReporter, is_json_mime, try_into_json};
 use askama::Template;
+use semdiff_core::fs::FileLeaf;
 use semdiff_core::{DetailReporter, MayUnsupported};
 use semdiff_output::html::{HtmlReport, HtmlReportError};
-use semdiff_tree_fs::FileLeaf;
 use thiserror::Error;
 
 const COMPARES_NAME: &str = "json";

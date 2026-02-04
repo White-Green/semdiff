@@ -16,7 +16,6 @@ semdiff-differ-image = { path = "crates/semdiff-differ-image" }
 semdiff-differ-json = { path = "crates/semdiff-differ-json" }
 semdiff-differ-text = { path = "crates/semdiff-differ-text" }
 semdiff-output = { path = "crates/semdiff-output" }
-semdiff-tree-fs = { path = "crates/semdiff-tree-fs" }
 
 askama = "0.15.4"
 clap = { features = ["derive"], version = "4.5.56" }

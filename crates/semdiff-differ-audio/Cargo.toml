@@ -14,7 +14,6 @@ mime_guess = { workspace = true }
 rustfft = { workspace = true }
 semdiff-core = { workspace = true }
 semdiff-output = { workspace = true }
-semdiff-tree-fs = { workspace = true }
 serde = { workspace = true }
 symphonia = { workspace = true }
 thiserror = { workspace = true }

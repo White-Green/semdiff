@@ -1,6 +1,6 @@
 use memmap2::Mmap;
+use semdiff_core::fs::FileLeaf;
 use semdiff_core::{Diff, DiffCalculator, MayUnsupported};
-use semdiff_tree_fs::FileLeaf;
 use similar::{ChangeTag, TextDiffConfig};
 use std::convert;
 use std::sync::Arc;

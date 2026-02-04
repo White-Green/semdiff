@@ -1,7 +1,7 @@
 use crate::{TextDiff, TextDiffReporter, is_text_file};
+use semdiff_core::fs::FileLeaf;
 use semdiff_core::{DetailReporter, MayUnsupported};
 use semdiff_output::summary::SummaryReport;
-use semdiff_tree_fs::FileLeaf;
 use std::convert;
 
 impl<W> DetailReporter<TextDiff, FileLeaf, SummaryReport<W>> for TextDiffReporter {
