@@ -6,9 +6,10 @@ name = "semdiff-output"
 version = { workspace = true }
 
 [dependencies]
+semdiff-core = { workspace = true }
+
 askama = { workspace = true }
 dashmap = { workspace = true }
-semdiff-core = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

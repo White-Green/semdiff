@@ -6,11 +6,12 @@ name = "semdiff-differ-image"
 version = { workspace = true }
 
 [dependencies]
+semdiff-core = { workspace = true }
+semdiff-output = { workspace = true }
+
 askama = { workspace = true }
 color = { workspace = true }
 image = { workspace = true }
 mime = { workspace = true }
-semdiff-core = { workspace = true }
-semdiff-output = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }

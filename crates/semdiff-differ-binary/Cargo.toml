@@ -6,10 +6,11 @@ name = "semdiff-differ-binary"
 version = { workspace = true }
 
 [dependencies]
-askama = { workspace = true }
-memmap2 = { workspace = true }
 semdiff-core = { workspace = true }
 semdiff-output = { workspace = true }
+
+askama = { workspace = true }
+memmap2 = { workspace = true }
 serde = { workspace = true }
 similar = { workspace = true }
 thiserror = { workspace = true }

@@ -6,9 +6,9 @@ name = "semdiff-core"
 version = { workspace = true }
 
 [dependencies]
-rayon = { workspace = true }
 infer = { workspace = true }
 memmap2 = { workspace = true }
 mime = { workspace = true }
 mime_guess = { workspace = true }
+rayon = { workspace = true }
 thiserror = { workspace = true }

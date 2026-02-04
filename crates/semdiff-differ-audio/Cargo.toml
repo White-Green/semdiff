@@ -6,14 +6,15 @@ name = "semdiff-differ-audio"
 version = { workspace = true }
 
 [dependencies]
+semdiff-core = { workspace = true }
+semdiff-output = { workspace = true }
+
 askama = { workspace = true }
 image = { workspace = true }
 memmap2 = { workspace = true }
 mime = { workspace = true }
 mime_guess = { workspace = true }
 rustfft = { workspace = true }
-semdiff-core = { workspace = true }
-semdiff-output = { workspace = true }
 serde = { workspace = true }
 symphonia = { workspace = true }
 thiserror = { workspace = true }
