@@ -1,6 +1,7 @@
 /*
 !/.github
 !/crates
+!/docs
 !/sample_data
 !/.gitignore
 !/Cargo.lock
