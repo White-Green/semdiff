@@ -11,7 +11,6 @@ semdiff-output = { workspace = true }
 
 askama = { workspace = true }
 mime = { workspace = true }
-serde = { workspace = true }
-serde_json = { features = ["preserve_order"], workspace = true }
+serde_json = { workspace = true }
 similar = { workspace = true }
 thiserror = { workspace = true }
