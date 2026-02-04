@@ -5,21 +5,12 @@ use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::SystemTime;
 use thiserror::Error;
-
-#[derive(Clone, Debug)]
-pub struct FileMeta {
-    pub size: u64,
-    pub modified: Option<SystemTime>,
-}
 
 #[derive(Debug, Clone)]
 pub struct FileLeaf {
     pub name: String,
-    pub abs_path: PathBuf,
     pub kind: Mime,
-    pub meta: FileMeta,
     pub content: Arc<Mmap>,
 }
 
@@ -87,16 +78,10 @@ impl NodeTraverse for FsNode {
             } else {
                 let file = File::open(entry.path()).map_err(FsTreeError::Open)?;
                 let content = unsafe { Mmap::map(&file) }.map_err(FsTreeError::Open)?;
-                let metadata = entry.metadata().map_err(FsTreeError::Metadata)?;
                 let kind = detect_file_kind(&abs_path, &content);
                 let leaf = FileLeaf {
                     name,
-                    abs_path,
                     kind,
-                    meta: FileMeta {
-                        size: metadata.len(),
-                        modified: metadata.modified().ok(),
-                    },
                     content: Arc::new(content),
                 };
                 Ok(TraversalNode::Leaf(leaf))
