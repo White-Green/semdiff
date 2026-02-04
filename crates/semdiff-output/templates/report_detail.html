@@ -10,8 +10,8 @@
         --status-neutral-bg: #f9fafb;
         --status-neutral-surface: #ffffff;
         --status-neutral-border: #e5e7eb;
-        --status-neutral-text: #1f2937;
-        --status-neutral-text-muted: #374151;
+        --status-neutral-text: #4b5563;
+        --status-neutral-text-muted: #6b7280;
         --status-neutral-text-subtle: #9ca3af;
         --status-neutral-link: #2563eb;
         --status-neutral-shadow: #0000000A;
@@ -30,6 +30,33 @@
         --diff-accent-1: #22c55e;
         --diff-accent-2: #0ea5e9;
         --diff-accent-3: #ef4444;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --status-neutral-bg: #0f172a;
+          --status-neutral-surface: #182338;
+          --status-neutral-border: #2b374c;
+          --status-neutral-text: #cbd5e1;
+          --status-neutral-text-muted: #94a3b8;
+          --status-neutral-text-subtle: #64748b;
+          --status-neutral-link: #60a5fa;
+          --status-neutral-shadow: #00000080;
+          --status-unchanged-bg: #083344;
+          --status-unchanged-text: #67e8f9;
+          --status-unchanged-border: #164e63;
+          --status-modified-bg: #451a03;
+          --status-modified-text: #fbbf24;
+          --status-modified-border: #78350f;
+          --status-added-bg: #052e16;
+          --status-added-text: #6ee7b7;
+          --status-added-border: #065f46;
+          --status-deleted-bg: #450a0a;
+          --status-deleted-text: #fca5a5;
+          --status-deleted-border: #7f1d1d;
+          --diff-accent-1: #22c55e;
+          --diff-accent-2: #38bdf8;
+          --diff-accent-3: #f87171;
+        }
       }
       body {
         font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
