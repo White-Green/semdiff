@@ -2,6 +2,10 @@
 
 `semdiff` is a semantic diff tool for comparing files and directories. It walks two directory trees, detects file types, and produces human-friendly reports for text, JSON, binary, image, and audio differences.
 
+![HTML report sample](docs/images/html-report-sample.png)
+
+Screenshot source: https://white-green.github.io/semdiff
+
 ## Features
 
 - Compare files or directories (`--expected` vs `--actual`).
@@ -52,12 +56,6 @@ semdiff --expected ./sample_data/expected --actual ./sample_data/actual --output
 # JSON report to stdout
 semdiff --expected ./sample_data/expected --actual ./sample_data/actual --format json
 ```
-
-## HTML report sample
-
-![HTML report sample](docs/images/html-report-sample.png)
-
-Screenshot source: https://white-green.github.io/semdiff
 
 ## Options
 
