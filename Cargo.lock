@@ -1079,7 +1079,7 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "semdiff-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "semdiff-core",
@@ -1093,7 +1093,7 @@ dependencies = [
 
 [[package]]
 name = "semdiff-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "infer",
  "memmap2",
@@ -1105,7 +1105,7 @@ dependencies = [
 
 [[package]]
 name = "semdiff-differ-audio"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "askama",
  "image",
@@ -1122,7 +1122,7 @@ dependencies = [
 
 [[package]]
 name = "semdiff-differ-binary"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "askama",
  "memmap2",
@@ -1135,7 +1135,7 @@ dependencies = [
 
 [[package]]
 name = "semdiff-differ-image"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "askama",
  "color",
@@ -1149,7 +1149,7 @@ dependencies = [
 
 [[package]]
 name = "semdiff-differ-json"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "askama",
  "mime",
@@ -1162,7 +1162,7 @@ dependencies = [
 
 [[package]]
 name = "semdiff-differ-text"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "askama",
  "memmap2",
@@ -1176,7 +1176,7 @@ dependencies = [
 
 [[package]]
 name = "semdiff-output"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "askama",
  "dashmap",
