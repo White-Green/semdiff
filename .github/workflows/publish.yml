@@ -51,8 +51,7 @@ jobs:
           ARCHIVE_NAME="semdiff-${{ matrix.target }}.tar.gz"
           mkdir -p dist
           mkdir -p .github/archive/semdiff
-          ls target/release
-          mv target/release/semdiff${{ matrix.ext }} README.md LICENSE-Apache LICENSE-MIT .github/archive/semdiff
+          mv target/${{ matrix.target }}/semdiff${{ matrix.ext }} README.md LICENSE-Apache LICENSE-MIT .github/archive/semdiff
           tar -czf "dist/${ARCHIVE_NAME}" -C .github/archive semdiff
           echo "archive_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
           echo "archive_path=dist/${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
