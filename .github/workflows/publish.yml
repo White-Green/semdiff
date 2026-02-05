@@ -13,6 +13,7 @@ jobs:
     uses: ./.github/workflows/test.yml
 
   build_binary:
+    name: Build Binary for ${{ matrix.target }}
     needs: [ format, lint, test ]
     strategy:
       matrix:
