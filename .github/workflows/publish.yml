@@ -83,11 +83,6 @@ jobs:
             ~/.cargo/git/db/
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
 
-      - uses: actions/cache@v5
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('Cargo.lock') }}
-
       - run: cargo fetch --locked
 
       - uses: actions/download-artifact@v4
