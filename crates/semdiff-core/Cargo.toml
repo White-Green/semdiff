@@ -4,6 +4,7 @@ description = "Core traversal, diff calculation, and reporting traits for semdif
 edition = { workspace = true }
 license = { workspace = true }
 name = "semdiff-core"
+readme = { workspace = true }
 repository = { workspace = true }
 version = { workspace = true }
 

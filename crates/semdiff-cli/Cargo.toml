@@ -4,6 +4,7 @@ description = "Command-line interface for the semdiff semantic diff tool."
 edition = { workspace = true }
 license = { workspace = true }
 name = "semdiff-cli"
+readme = { workspace = true }
 repository = { workspace = true }
 version = { workspace = true }
 

@@ -4,6 +4,7 @@ description = "HTML, JSON, and summary report outputs for semdiff."
 edition = { workspace = true }
 license = { workspace = true }
 name = "semdiff-output"
+readme = { workspace = true }
 repository = { workspace = true }
 version = { workspace = true }
 
