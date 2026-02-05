@@ -13,10 +13,10 @@ use std::path::PathBuf;
 #[command(name = "semdiff", version, about = "Semantic diff tool")]
 struct Cli {
     /// Path to the expected input file or directory.
-    #[arg(long)]
+    #[arg(value_name = "EXPECTED")]
     expected: PathBuf,
     /// Path to the actual input file or directory.
-    #[arg(long)]
+    #[arg(value_name = "ACTUAL")]
     actual: PathBuf,
     /// Output path for JSON/HTML reports; if omitted, prints a summary to stdout.
     #[arg(long)]

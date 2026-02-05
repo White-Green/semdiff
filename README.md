@@ -8,7 +8,7 @@ Screenshot source: https://white-green.github.io/semdiff
 
 ## Features
 
-- Compare files or directories (`--expected` vs `--actual`).
+- Compare files or directories (`expected` vs `actual`).
 - Diff types: text, JSON, binary, image, and audio. (Additional suggestions are welcome.)
 - Report outputs:
   - Summary (stdout)
@@ -35,7 +35,7 @@ The binary will be available at `target/release/semdiff`.
 ## Usage
 
 ```bash
-semdiff --expected <path> --actual <path>
+semdiff <expected> <actual>
 ```
 
 ### Output selection
@@ -48,20 +48,20 @@ semdiff --expected <path> --actual <path>
 
 ```bash
 # Summary to stdout
-semdiff --expected ./sample_data/expected --actual ./sample_data/actual
+semdiff ./sample_data/expected ./sample_data/actual
 
 # HTML report
-semdiff --expected ./sample_data/expected --actual ./sample_data/actual --output ./test/index.html
+semdiff ./sample_data/expected ./sample_data/actual --output ./test/index.html
 
 # JSON report to stdout
-semdiff --expected ./sample_data/expected --actual ./sample_data/actual --format json
+semdiff ./sample_data/expected ./sample_data/actual --format json
 ```
 
 ## Options
 
 ```
---expected <PATH>                         Path to the expected input file or directory
---actual <PATH>                           Path to the actual input file or directory
+<EXPECTED>                               Path to the expected input file or directory
+<ACTUAL>                                 Path to the actual input file or directory
 --output <PATH>                           Output path for JSON/HTML reports; if omitted, prints a summary to stdout
 --format <json|html>                      Output format; if omitted, inferred from --output extension or defaults to summary
 --json-ignore-object-key-order            Ignore object key order when comparing JSON

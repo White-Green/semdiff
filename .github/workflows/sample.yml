@@ -29,7 +29,7 @@ jobs:
 
       - run: cargo build --release --locked
 
-      - run: time ./target/release/semdiff --expected ./sample_data/expected --actual ./sample_data/actual --output ./out/index.html
+      - run: time ./target/release/semdiff ./sample_data/expected ./sample_data/actual --output ./out/index.html
 
       - uses: actions/upload-pages-artifact@v4
         with:
