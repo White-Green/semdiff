@@ -339,6 +339,7 @@ impl AudioStat {
             .flatten()
             .flatten()
             .copied()
+            .filter(|v| v.is_finite())
             .fold((f32::INFINITY, f32::NEG_INFINITY), |(min, max), v| {
                 (v.min(min), v.max(max))
             });
@@ -796,7 +797,7 @@ impl SpectrogramAnalyzer {
                 .unwrap()
                 .iter_mut()
                 .zip(buffer.iter().copied())
-                .for_each(|(slot, b)| *slot = b.norm().log10());
+                .for_each(|(slot, b)| *slot = b.norm_sqr().max(1e-32).log10());
         }
         result
     }
