@@ -4,7 +4,7 @@
 
 ![HTML report sample](docs/images/html-report-sample.png)
 
-Screenshot source: https://white-green.github.io/semdiff
+HTML report example: https://white-green.github.io/semdiff
 
 ## Features
 
