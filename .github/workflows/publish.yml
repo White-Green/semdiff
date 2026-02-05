@@ -94,7 +94,15 @@ jobs:
           set -euo pipefail
           
           VERSION=$(cargo metadata --format-version 1 | jq -r '.packages[] | select(.name == "semdiff-cli") | .version')
-          gh release create "v${VERSION}" --fail-on-no-commits --generate-notes --target ${{ github.event.repository.default_branch }} --title "v${VERSION}" release-artifacts/*
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/White-Green/semdiff/releases/tags/v${VERSION})
+          if [ "${STATUS}" = "404" ]; then
+            gh release create "v${VERSION}" --fail-on-no-commits --generate-notes --target ${{ github.event.repository.default_branch }} --title "v${VERSION}" release-artifacts/*
+          elif [ "${STATUS}" = "200" ]; then
+            echo "Release v${VERSION} already exists. Skipping create release."
+          else
+            echo "Unexpected status code: ${STATUS}" >&2
+            exit 1
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
 
