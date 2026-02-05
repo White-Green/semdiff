@@ -14,37 +14,44 @@ jobs:
 
   build_binary:
     needs: [ format, lint, test ]
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-musl
+            ext: ""
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            ext: ".exe"
+          - os: windows-2022
+            target: aarch64-pc-windows-msvc
+            ext: ".exe"
+          - os: macOS-14
+            target: aarch64-apple-darwin
+            ext: ""
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@stable
-
-      - uses: actions/cache@v5
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          target: ${{ matrix.target }}
 
-      - uses: actions/cache@v5
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('Cargo.lock') }}
+      - if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt install -y musl-tools
 
-      - run: cargo fetch --locked
-
-      - run: cargo build --release --locked
+      - run: cargo build --release --locked --target ${{ matrix.target }}
 
       - id: package
+        shell: bash
         run: |
           set -euo pipefail
 
-          ARCHIVE_NAME="semdiff-x86_64-Linux.tar.gz"
+          ARCHIVE_NAME="semdiff-${{ matrix.target }}.tar.gz"
           mkdir -p dist
-          tar -czf "dist/${ARCHIVE_NAME}" -C target/release semdiff
+          mkdir -p .github/archive/semdiff
+          mv target/release/semdiff${{ matrix.ext }} README.md LICENSE-Apache LICENSE-MIT .github/archive/semdiff
+          tar -czf "dist/${ARCHIVE_NAME}" -C .github/archive semdiff
           echo "archive_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
           echo "archive_path=dist/${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
 
