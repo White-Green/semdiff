@@ -94,14 +94,14 @@ jobs:
           set -euo pipefail
           
           VERSION=$(cargo metadata --format-version 1 | jq -r '.packages[] | select(.name == "semdiff-cli") | .version')
-          gh release create --draft "v${VERSION}" --fail-on-no-commits --generate-notes --target ${{ github.event.repository.default_branch }} --title "v${VERSION}" release-artifacts/*
+          gh release create "v${VERSION}" --fail-on-no-commits --generate-notes --target ${{ github.event.repository.default_branch }} --title "v${VERSION}" release-artifacts/*
         env:
           GH_TOKEN: ${{ github.token }}
 
 #      - id: auth
 #        uses: rust-lang/crates-io-auth-action@v1
 
-      - run: cargo publish --workspace --dry-run
+      - run: cargo publish --workspace
         env:
 #          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
