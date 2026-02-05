@@ -574,15 +574,8 @@ fn overlap_range(expected_len: usize, actual_len: usize, shift: i32) -> (Range<u
 }
 
 fn overlap_slices<'a>(expected: &'a [f32], actual: &'a [f32], shift: i32) -> (&'a [f32], &'a [f32]) {
-    if shift >= 0 {
-        let shift = shift as usize;
-        let len = expected.len().min(actual.len().saturating_sub(shift));
-        (&expected[..len], &actual[shift..shift + len])
-    } else {
-        let shift = (-shift) as usize;
-        let len = actual.len().min(expected.len().saturating_sub(shift));
-        (&expected[shift..shift + len], &actual[..len])
-    }
+    let (expected_range, actual_range) = overlap_range(expected.len(), actual.len(), shift);
+    (&expected[expected_range], &actual[actual_range])
 }
 
 fn normalized_correlation(expected: &[f32], actual: &[f32]) -> f32 {
