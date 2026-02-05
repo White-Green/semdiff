@@ -103,9 +103,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - id: auth
-        uses: rust-lang/crates-io-auth-action@v1
+#      - id: auth
+#        uses: rust-lang/crates-io-auth-action@v1
 
       - run: cargo publish --workspace --dry-run
         env:
-          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+#          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
