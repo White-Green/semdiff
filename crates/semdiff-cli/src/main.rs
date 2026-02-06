@@ -18,16 +18,19 @@ struct Cli {
     /// Path to the actual input file or directory.
     #[arg(value_name = "ACTUAL")]
     actual: PathBuf,
-    /// Output path for JSON/HTML reports; if omitted, prints a summary to stdout.
-    #[arg(long)]
+    /// Write JSON/HTML reports to PATH; if omitted, prints a summary to stdout.
+    #[arg(long, hide = true)]
     output: Option<PathBuf>,
     /// Output format: json or html. If omitted, inferred from --output extension or defaults to summary.
-    #[arg(long)]
+    #[arg(long, hide = true)]
     format: Option<String>,
+    /// Write JSON report to PATH. Use "-" or omit the value after --output-json to write to stdout.
     #[arg(long, value_name = "PATH", num_args = 0..=1, default_missing_value = "-")]
     output_json: Option<PathBuf>,
+    /// Write HTML report to PATH.
     #[arg(long)]
     output_html: Option<PathBuf>,
+    /// Suppress summary output to stdout unless stdout is explicitly selected.
     #[arg(long)]
     silent: bool,
     /// Ignore object key order when comparing JSON.
