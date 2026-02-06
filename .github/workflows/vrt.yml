@@ -62,13 +62,6 @@ jobs:
           name: vrt-data
           path: ./actual
 
-      - uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CF_API_TOKEN }}
-          accountId: ${{ secrets.CF_ACCOUNT_ID }}
-          command: |
-            pages deploy --project-name ${{ vars.VRT_CF_PAGES_PROJECT_NAME }} ./actual/report/html
-
       - run: |
           OUT_ROOT="$(pwd)/actual"
           tar -I 'zstd -19' -cf saved.tar.zst -C "${OUT_ROOT}" .
