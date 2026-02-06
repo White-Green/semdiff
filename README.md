@@ -40,9 +40,9 @@ semdiff <expected> <actual>
 
 ### Output selection
 
-- **Summary (default):** omit `--output` and `--format`
-- **JSON:** `--format json` (writes to `--output` if provided; otherwise stdout)
-- **HTML:** `--format html` and an `--output` path ending in `.html`
+- **Summary (default):** omit `--output-json` and `--output-html`
+- **JSON:** `--output-json [PATH]` (writes to `PATH` if provided; use `-` or omit the value after `--output-json` for stdout)
+- **HTML:** `--output-html <PATH>`
 
 ### Common examples
 
@@ -51,10 +51,10 @@ semdiff <expected> <actual>
 semdiff ./sample_data/expected ./sample_data/actual
 
 # HTML report
-semdiff ./sample_data/expected ./sample_data/actual --output ./test/index.html
+semdiff ./sample_data/expected ./sample_data/actual --output-html ./test/index.html
 
 # JSON report to stdout
-semdiff ./sample_data/expected ./sample_data/actual --format json
+semdiff ./sample_data/expected ./sample_data/actual --output-json
 ```
 
 ## Options
@@ -62,8 +62,9 @@ semdiff ./sample_data/expected ./sample_data/actual --format json
 ```
 <EXPECTED>                               Path to the expected input file or directory
 <ACTUAL>                                 Path to the actual input file or directory
---output <PATH>                           Output path for JSON/HTML reports; if omitted, prints a summary to stdout
---format <json|html>                      Output format; if omitted, inferred from --output extension or defaults to summary
+--output-json [PATH]                      Write JSON report to PATH. Use "-" or omit the value after --output-json to write to stdout
+--output-html <PATH>                      Write HTML report to PATH
+--silent                                  Suppress summary output to stdout unless stdout is explicitly selected
 --json-ignore-object-key-order            Ignore object key order when comparing JSON
 --image-max-distance <FLOAT>              Max OkLab+alpha distance to treat two image pixels as equal
 --image-max-diff-ratio <FLOAT>            Max ratio of differing pixels to treat images as equal
