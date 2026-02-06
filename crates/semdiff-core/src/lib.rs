@@ -98,7 +98,8 @@ pub trait DiffCalculator<T> {
 
 pub trait DetailReporter<Diff, T, Reporter> {
     type Error: Error + Send + 'static;
-    fn report_unchanged(&self, name: &str, diff: &Diff, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
+    fn report_unchanged(&self, name: &str, diff: &Diff, reporter: &Reporter)
+    -> Result<MayUnsupported<()>, Self::Error>;
     fn report_modified(&self, name: &str, diff: &Diff, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
     fn report_added(&self, name: &str, data: &T, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
     fn report_deleted(&self, name: &str, data: &T, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
@@ -119,7 +120,12 @@ where
 {
     type Error = EitherError<<R as DetailReporter<Diff, T, R1>>::Error, <R as DetailReporter<Diff, T, R2>>::Error>;
 
-    fn report_unchanged(&self, name: &str, diff: &Diff, (reporter1, reporter2): &(R1, R2)) -> Result<MayUnsupported<()>, Self::Error> {
+    fn report_unchanged(
+        &self,
+        name: &str,
+        diff: &Diff,
+        (reporter1, reporter2): &(R1, R2),
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         match <R as DetailReporter<Diff, T, R1>>::report_unchanged(self, name, diff, reporter1) {
             Ok(MayUnsupported::Unsupported) => return Ok(MayUnsupported::Unsupported),
             Ok(MayUnsupported::Ok(())) => {}
@@ -128,7 +134,12 @@ where
         <R as DetailReporter<Diff, T, R2>>::report_unchanged(self, name, diff, reporter2).map_err(EitherError::Right)
     }
 
-    fn report_modified(&self, name: &str, diff: &Diff, (reporter1, reporter2): &(R1, R2)) -> Result<MayUnsupported<()>, Self::Error> {
+    fn report_modified(
+        &self,
+        name: &str,
+        diff: &Diff,
+        (reporter1, reporter2): &(R1, R2),
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         match <R as DetailReporter<Diff, T, R1>>::report_modified(self, name, diff, reporter1) {
             Ok(MayUnsupported::Unsupported) => return Ok(MayUnsupported::Unsupported),
             Ok(MayUnsupported::Ok(())) => {}
@@ -137,7 +148,12 @@ where
         <R as DetailReporter<Diff, T, R2>>::report_modified(self, name, diff, reporter2).map_err(EitherError::Right)
     }
 
-    fn report_added(&self, name: &str, data: &T, (reporter1, reporter2): &(R1, R2)) -> Result<MayUnsupported<()>, Self::Error> {
+    fn report_added(
+        &self,
+        name: &str,
+        data: &T,
+        (reporter1, reporter2): &(R1, R2),
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         match <R as DetailReporter<Diff, T, R1>>::report_added(self, name, data, reporter1) {
             Ok(MayUnsupported::Unsupported) => return Ok(MayUnsupported::Unsupported),
             Ok(MayUnsupported::Ok(())) => {}
@@ -146,7 +162,12 @@ where
         <R as DetailReporter<Diff, T, R2>>::report_added(self, name, data, reporter2).map_err(EitherError::Right)
     }
 
-    fn report_deleted(&self, name: &str, data: &T, (reporter1, reporter2): &(R1, R2)) -> Result<MayUnsupported<()>, Self::Error> {
+    fn report_deleted(
+        &self,
+        name: &str,
+        data: &T,
+        (reporter1, reporter2): &(R1, R2),
+    ) -> Result<MayUnsupported<()>, Self::Error> {
         match <R as DetailReporter<Diff, T, R1>>::report_deleted(self, name, data, reporter1) {
             Ok(MayUnsupported::Unsupported) => return Ok(MayUnsupported::Unsupported),
             Ok(MayUnsupported::Ok(())) => {}
