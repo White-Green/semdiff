@@ -10,7 +10,7 @@ impl<W> DetailReporter<BinaryDiff, FileLeaf, SummaryReport<W>> for BinaryDiffRep
     fn report_unchanged(
         &self,
         _name: &str,
-        _diff: BinaryDiff,
+        _diff: &BinaryDiff,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.increment_unchanged();
@@ -20,7 +20,7 @@ impl<W> DetailReporter<BinaryDiff, FileLeaf, SummaryReport<W>> for BinaryDiffRep
     fn report_modified(
         &self,
         _name: &str,
-        _diff: BinaryDiff,
+        _diff: &BinaryDiff,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.increment_modified();
@@ -30,7 +30,7 @@ impl<W> DetailReporter<BinaryDiff, FileLeaf, SummaryReport<W>> for BinaryDiffRep
     fn report_added(
         &self,
         _name: &str,
-        _data: FileLeaf,
+        _data: &FileLeaf,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.increment_added();
@@ -40,7 +40,7 @@ impl<W> DetailReporter<BinaryDiff, FileLeaf, SummaryReport<W>> for BinaryDiffRep
     fn report_deleted(
         &self,
         _name: &str,
-        _data: FileLeaf,
+        _data: &FileLeaf,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.increment_deleted();

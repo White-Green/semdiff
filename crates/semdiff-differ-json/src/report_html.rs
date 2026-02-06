@@ -55,7 +55,7 @@ impl DetailReporter<JsonDiff, FileLeaf, HtmlReport> for JsonDiffReporter {
     fn report_unchanged(
         &self,
         name: &str,
-        diff: JsonDiff,
+        diff: &JsonDiff,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let JsonDiffBody::Equal(body) = diff.body() else {
@@ -75,7 +75,7 @@ impl DetailReporter<JsonDiff, FileLeaf, HtmlReport> for JsonDiffReporter {
     fn report_modified(
         &self,
         name: &str,
-        diff: JsonDiff,
+        diff: &JsonDiff,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let JsonDiffBody::Modified(lines) = diff.body() else {
@@ -95,7 +95,7 @@ impl DetailReporter<JsonDiff, FileLeaf, HtmlReport> for JsonDiffReporter {
     fn report_added(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if !is_json_mime(&data.kind) {
@@ -120,7 +120,7 @@ impl DetailReporter<JsonDiff, FileLeaf, HtmlReport> for JsonDiffReporter {
     fn report_deleted(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if !is_json_mime(&data.kind) {

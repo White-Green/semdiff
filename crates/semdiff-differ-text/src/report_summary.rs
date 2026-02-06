@@ -10,7 +10,7 @@ impl<W> DetailReporter<TextDiff, FileLeaf, SummaryReport<W>> for TextDiffReporte
     fn report_unchanged(
         &self,
         _name: &str,
-        _diff: TextDiff,
+        _diff: &TextDiff,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.increment_unchanged();
@@ -20,7 +20,7 @@ impl<W> DetailReporter<TextDiff, FileLeaf, SummaryReport<W>> for TextDiffReporte
     fn report_modified(
         &self,
         _name: &str,
-        _diff: TextDiff,
+        _diff: &TextDiff,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.increment_modified();
@@ -30,7 +30,7 @@ impl<W> DetailReporter<TextDiff, FileLeaf, SummaryReport<W>> for TextDiffReporte
     fn report_added(
         &self,
         _name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if !is_text_file(&data.kind, &data.content) {
@@ -43,7 +43,7 @@ impl<W> DetailReporter<TextDiff, FileLeaf, SummaryReport<W>> for TextDiffReporte
     fn report_deleted(
         &self,
         _name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if !is_text_file(&data.kind, &data.content) {

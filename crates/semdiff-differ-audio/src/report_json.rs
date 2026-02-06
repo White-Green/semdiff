@@ -19,7 +19,7 @@ impl<W> DetailReporter<AudioDiff, FileLeaf, JsonReport<W>> for AudioDiffReporter
     fn report_unchanged(
         &self,
         name: &str,
-        _diff: AudioDiff,
+        _diff: &AudioDiff,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.record_unchanged(name, COMPARES_NAME, ());
@@ -29,7 +29,7 @@ impl<W> DetailReporter<AudioDiff, FileLeaf, JsonReport<W>> for AudioDiffReporter
     fn report_modified(
         &self,
         name: &str,
-        diff: AudioDiff,
+        diff: &AudioDiff,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let (spectrogram_diff_rate, shift_samples, lufs_diff_db) = if let Some(detail) = diff.diff_detail() {
@@ -61,7 +61,7 @@ impl<W> DetailReporter<AudioDiff, FileLeaf, JsonReport<W>> for AudioDiffReporter
     fn report_added(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if audio_extension(&data.kind).is_none() {
@@ -85,7 +85,7 @@ impl<W> DetailReporter<AudioDiff, FileLeaf, JsonReport<W>> for AudioDiffReporter
     fn report_deleted(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if audio_extension(&data.kind).is_none() {

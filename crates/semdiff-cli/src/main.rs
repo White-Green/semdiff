@@ -7,7 +7,7 @@ use semdiff_output::summary::SummaryReport;
 use std::ffi::OsStr;
 use std::fs::File;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, clap::Parser)]
 #[command(name = "semdiff", version, about = "Semantic diff tool")]
@@ -18,12 +18,21 @@ struct Cli {
     /// Path to the actual input file or directory.
     #[arg(value_name = "ACTUAL")]
     actual: PathBuf,
-    /// Output path for JSON/HTML reports; if omitted, prints a summary to stdout.
-    #[arg(long)]
+    /// Write JSON/HTML reports to PATH; if omitted, prints a summary to stdout.
+    #[arg(long, hide = true)]
     output: Option<PathBuf>,
     /// Output format: json or html. If omitted, inferred from --output extension or defaults to summary.
-    #[arg(long)]
+    #[arg(long, hide = true)]
     format: Option<String>,
+    /// Write JSON report to PATH. Use "-" or omit the value after --output-json to write to stdout.
+    #[arg(long, value_name = "PATH", num_args = 0..=1, default_missing_value = "-")]
+    output_json: Option<PathBuf>,
+    /// Write HTML report to PATH.
+    #[arg(long)]
+    output_html: Option<PathBuf>,
+    /// Suppress summary output to stdout unless stdout is explicitly selected.
+    #[arg(long)]
+    silent: bool,
     /// Ignore object key order when comparing JSON.
     #[arg(long)]
     json_ignore_object_key_order: bool,
@@ -90,29 +99,64 @@ enum OutputKind {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     let diff_config = DiffConfig::from_cli(&cli);
-    let output_kind = output_target(cli.output.clone(), cli.format.as_deref());
     let expected = FsNode::new_root(cli.expected);
     let actual = FsNode::new_root(cli.actual);
-    match output_kind {
-        OutputKind::Html(path) => {
-            let report = HtmlReport::new(path);
+    macro_rules! run {
+        ($report:expr) => {{
             let diff = construct_diff(&diff_config);
-            semdiff_core::calc_diff(expected, actual, &diff, report)?;
+            semdiff_core::calc_diff(expected, actual, &diff, $report)?;
+        }};
+    }
+    #[track_caller]
+    fn create_file(path: impl AsRef<Path>) -> File {
+        File::create_new(path).expect("Failed to create output file")
+    }
+    if cli.output.is_some() || cli.format.is_some() {
+        eprintln!("WARNING: --output and --format are deprecated; use --output-json/--output-html instead");
+        let output_kind = output_target(cli.output.clone(), cli.format.as_deref());
+        match output_kind {
+            OutputKind::Html(path) => {
+                run!(HtmlReport::new(path));
+            }
+            OutputKind::JsonToFile(path) => {
+                run!(JsonReport::new(create_file(path)));
+            }
+            OutputKind::JsonToStdout => {
+                run!(JsonReport::new(io::stdout()));
+            }
+            OutputKind::Summary => {
+                run!(SummaryReport::new(io::stdout()));
+            }
         }
-        OutputKind::JsonToFile(path) => {
-            let report = JsonReport::new(File::create_new(path).expect(""));
-            let diff = construct_diff(&diff_config);
-            semdiff_core::calc_diff(expected, actual, &diff, report)?;
-        }
-        OutputKind::JsonToStdout => {
-            let report = JsonReport::new(io::stdout());
-            let diff = construct_diff(&diff_config);
-            semdiff_core::calc_diff(expected, actual, &diff, report)?;
-        }
-        OutputKind::Summary => {
-            let report = SummaryReport::new(io::stdout());
-            let diff = construct_diff(&diff_config);
-            semdiff_core::calc_diff(expected, actual, &diff, report)?;
+    } else {
+        match (cli.output_json, cli.output_html, cli.silent) {
+            (Some(output_json), output_html, silent) if output_json.as_path() == "-" => {
+                if silent {
+                    eprintln!("WARNING: --silent is ignored when outputting to stdout");
+                }
+                match output_html {
+                    Some(output_html) => run!((JsonReport::new(io::stdout()), HtmlReport::new(output_html))),
+                    None => run!(JsonReport::new(io::stdout())),
+                }
+            }
+            (Some(output_json), Some(output_html), false) => run!((
+                (JsonReport::new(create_file(output_json)), HtmlReport::new(output_html)),
+                SummaryReport::new(io::stdout())
+            )),
+            (Some(output_json), None, false) => run!((
+                JsonReport::new(create_file(output_json)),
+                SummaryReport::new(io::stdout())
+            )),
+            (None, Some(output_html), false) => run!((HtmlReport::new(output_html), SummaryReport::new(io::stdout()))),
+            (None, None, false) => run!(SummaryReport::new(io::stdout())),
+            (Some(output_json), Some(output_html), true) => {
+                run!((JsonReport::new(create_file(output_json)), HtmlReport::new(output_html)))
+            }
+            (Some(output_json), None, true) => run!(JsonReport::new(create_file(output_json))),
+            (None, Some(output_html), true) => run!(HtmlReport::new(output_html)),
+            (None, None, true) => eprintln!(
+                "WARNING: --silent is set but no output target was specified; nothing will be processed or output"
+            ),
         }
     }
     Ok(())

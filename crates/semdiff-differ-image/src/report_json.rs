@@ -20,7 +20,7 @@ impl<W> DetailReporter<ImageDiff, FileLeaf, JsonReport<W>> for ImageDiffReporter
     fn report_unchanged(
         &self,
         name: &str,
-        _diff: ImageDiff,
+        _diff: &ImageDiff,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.record_unchanged(name, COMPARES_NAME, ());
@@ -30,7 +30,7 @@ impl<W> DetailReporter<ImageDiff, FileLeaf, JsonReport<W>> for ImageDiffReporter
     fn report_modified(
         &self,
         name: &str,
-        diff: ImageDiff,
+        diff: &ImageDiff,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let report = ModifiedReport {
@@ -47,7 +47,7 @@ impl<W> DetailReporter<ImageDiff, FileLeaf, JsonReport<W>> for ImageDiffReporter
     fn report_added(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let Some(format) = image_format(&data.kind) else {
@@ -65,7 +65,7 @@ impl<W> DetailReporter<ImageDiff, FileLeaf, JsonReport<W>> for ImageDiffReporter
     fn report_deleted(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let Some(format) = image_format(&data.kind) else {

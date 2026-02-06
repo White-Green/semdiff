@@ -13,7 +13,7 @@ impl<W> DetailReporter<BinaryDiff, FileLeaf, JsonReport<W>> for BinaryDiffReport
     fn report_unchanged(
         &self,
         name: &str,
-        diff: BinaryDiff,
+        diff: &BinaryDiff,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let report = SingleReport {
@@ -26,7 +26,7 @@ impl<W> DetailReporter<BinaryDiff, FileLeaf, JsonReport<W>> for BinaryDiffReport
     fn report_modified(
         &self,
         name: &str,
-        diff: BinaryDiff,
+        diff: &BinaryDiff,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let stat = BinaryDiff::stat(&diff.changes());
@@ -45,7 +45,7 @@ impl<W> DetailReporter<BinaryDiff, FileLeaf, JsonReport<W>> for BinaryDiffReport
     fn report_added(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let report = SingleReport {
@@ -58,7 +58,7 @@ impl<W> DetailReporter<BinaryDiff, FileLeaf, JsonReport<W>> for BinaryDiffReport
     fn report_deleted(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let report = SingleReport {

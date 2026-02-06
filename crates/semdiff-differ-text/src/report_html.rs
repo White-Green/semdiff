@@ -69,7 +69,7 @@ impl DetailReporter<TextDiff, FileLeaf, HtmlReport> for TextDiffReporter {
     fn report_unchanged(
         &self,
         name: &str,
-        diff: TextDiff,
+        diff: &TextDiff,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let body = String::from_utf8_lossy(&diff.expected);
@@ -87,7 +87,7 @@ impl DetailReporter<TextDiff, FileLeaf, HtmlReport> for TextDiffReporter {
     fn report_modified(
         &self,
         name: &str,
-        diff: TextDiff,
+        diff: &TextDiff,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let diff_view = diff.diff();
@@ -104,7 +104,7 @@ impl DetailReporter<TextDiff, FileLeaf, HtmlReport> for TextDiffReporter {
     fn report_added(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if !is_text_file(&data.kind, &data.content) {
@@ -127,7 +127,7 @@ impl DetailReporter<TextDiff, FileLeaf, HtmlReport> for TextDiffReporter {
     fn report_deleted(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if !is_text_file(&data.kind, &data.content) {

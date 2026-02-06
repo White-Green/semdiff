@@ -90,7 +90,7 @@ impl DetailReporter<AudioDiff, FileLeaf, HtmlReport> for AudioDiffReporter {
     fn report_unchanged(
         &self,
         name: &str,
-        diff: AudioDiff,
+        diff: &AudioDiff,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let expected = diff.expected();
@@ -122,7 +122,7 @@ impl DetailReporter<AudioDiff, FileLeaf, HtmlReport> for AudioDiffReporter {
     fn report_modified(
         &self,
         name: &str,
-        diff: AudioDiff,
+        diff: &AudioDiff,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let expected = diff.expected();
@@ -190,13 +190,13 @@ impl DetailReporter<AudioDiff, FileLeaf, HtmlReport> for AudioDiffReporter {
     fn report_added(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let Some(extension) = audio_extension(&data.kind) else {
             return Ok(MayUnsupported::Unsupported);
         };
-        let Ok(audio_data) = self.build_audio_data(data.kind, data.content) else {
+        let Ok(audio_data) = self.build_audio_data(data.kind.clone(), data.content.clone()) else {
             return Ok(MayUnsupported::Unsupported);
         };
         let audio_file = write_audio(reporter, name, "added", extension, audio_data.content())?;
@@ -225,13 +225,13 @@ impl DetailReporter<AudioDiff, FileLeaf, HtmlReport> for AudioDiffReporter {
     fn report_deleted(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let Some(extension) = audio_extension(&data.kind) else {
             return Ok(MayUnsupported::Unsupported);
         };
-        let Ok(audio_data) = self.build_audio_data(data.kind, data.content) else {
+        let Ok(audio_data) = self.build_audio_data(data.kind.clone(), data.content.clone()) else {
             return Ok(MayUnsupported::Unsupported);
         };
         let audio_file = write_audio(reporter, name, "deleted", extension, audio_data.content())?;
