@@ -16,7 +16,8 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
 
-      - uses: dtolnay/rust-toolchain@stable
+      - id: rust-toolchain
+        uses: dtolnay/rust-toolchain@stable
 
       - uses: actions/cache@v5
         with:
@@ -42,7 +43,7 @@ jobs:
 
       - run: cargo fetch --locked
 
-      - run: bash ./.github/capture_vrt_data.sh
+      - run: bash ./.github/scripts/capture_vrt_data.sh
 
       - uses: actions/upload-artifact@v6
         with:
@@ -105,7 +106,7 @@ jobs:
           mkdir -p .github/tmp
           curl -L $LATEST_RELEASE_DOWNLOAD_URL --output .github/tmp/semdiff.tar.gz
           tar -xaf .github/tmp/semdiff.tar.gz -C .github/tmp
-          .github/tmp/semdiff ./expected ./actual --output-html regression/index.html --output-json ./report.json
+          .github/tmp/semdiff/semdiff ./expected ./actual --output-html regression/index.html --output-json ./report.json
 
       - uses: cloudflare/wrangler-action@v3
         with:
