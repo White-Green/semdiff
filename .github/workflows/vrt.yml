@@ -7,7 +7,7 @@ on:
   pull_request_target:
 
 jobs:
-  capture_images:
+  capture:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -52,7 +52,7 @@ jobs:
 
   publish_baseline:
     if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
-    needs: capture_images
+    needs: capture
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -75,7 +75,7 @@ jobs:
 
   pr_checks:
     if: github.event_name == 'pull_request_target'
-    needs: capture_images
+    needs: capture
     runs-on: ubuntu-latest
     permissions:
       contents: read
