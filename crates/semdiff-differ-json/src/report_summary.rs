@@ -10,7 +10,7 @@ impl<W> DetailReporter<JsonDiff, FileLeaf, SummaryReport<W>> for JsonDiffReporte
     fn report_unchanged(
         &self,
         _name: &str,
-        _diff: JsonDiff,
+        _diff: &JsonDiff,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.increment_unchanged();
@@ -20,7 +20,7 @@ impl<W> DetailReporter<JsonDiff, FileLeaf, SummaryReport<W>> for JsonDiffReporte
     fn report_modified(
         &self,
         _name: &str,
-        _diff: JsonDiff,
+        _diff: &JsonDiff,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.increment_modified();
@@ -30,7 +30,7 @@ impl<W> DetailReporter<JsonDiff, FileLeaf, SummaryReport<W>> for JsonDiffReporte
     fn report_added(
         &self,
         _name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if !is_json_mime(&data.kind) {
@@ -46,7 +46,7 @@ impl<W> DetailReporter<JsonDiff, FileLeaf, SummaryReport<W>> for JsonDiffReporte
     fn report_deleted(
         &self,
         _name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if !is_json_mime(&data.kind) {

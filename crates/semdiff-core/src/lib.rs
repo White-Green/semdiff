@@ -98,10 +98,62 @@ pub trait DiffCalculator<T> {
 
 pub trait DetailReporter<Diff, T, Reporter> {
     type Error: Error + Send + 'static;
-    fn report_unchanged(&self, name: &str, diff: Diff, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
-    fn report_modified(&self, name: &str, diff: Diff, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
-    fn report_added(&self, name: &str, data: T, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
-    fn report_deleted(&self, name: &str, data: T, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
+    fn report_unchanged(&self, name: &str, diff: &Diff, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
+    fn report_modified(&self, name: &str, diff: &Diff, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
+    fn report_added(&self, name: &str, data: &T, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
+    fn report_deleted(&self, name: &str, data: &T, reporter: &Reporter) -> Result<MayUnsupported<()>, Self::Error>;
+}
+
+#[derive(Debug, Error)]
+pub enum EitherError<T1, T2> {
+    #[error("{0}")]
+    Left(#[source] T1),
+    #[error("{0}")]
+    Right(#[source] T2),
+}
+
+impl<R, Diff, T, R1, R2> DetailReporter<Diff, T, (R1, R2)> for R
+where
+    R: DetailReporter<Diff, T, R1>,
+    R: DetailReporter<Diff, T, R2>,
+{
+    type Error = EitherError<<R as DetailReporter<Diff, T, R1>>::Error, <R as DetailReporter<Diff, T, R2>>::Error>;
+
+    fn report_unchanged(&self, name: &str, diff: &Diff, (reporter1, reporter2): &(R1, R2)) -> Result<MayUnsupported<()>, Self::Error> {
+        match <R as DetailReporter<Diff, T, R1>>::report_unchanged(self, name, diff, reporter1) {
+            Ok(MayUnsupported::Unsupported) => return Ok(MayUnsupported::Unsupported),
+            Ok(MayUnsupported::Ok(())) => {}
+            Err(e) => return Err(EitherError::Left(e)),
+        }
+        <R as DetailReporter<Diff, T, R2>>::report_unchanged(self, name, diff, reporter2).map_err(EitherError::Right)
+    }
+
+    fn report_modified(&self, name: &str, diff: &Diff, (reporter1, reporter2): &(R1, R2)) -> Result<MayUnsupported<()>, Self::Error> {
+        match <R as DetailReporter<Diff, T, R1>>::report_modified(self, name, diff, reporter1) {
+            Ok(MayUnsupported::Unsupported) => return Ok(MayUnsupported::Unsupported),
+            Ok(MayUnsupported::Ok(())) => {}
+            Err(e) => return Err(EitherError::Left(e)),
+        }
+        <R as DetailReporter<Diff, T, R2>>::report_modified(self, name, diff, reporter2).map_err(EitherError::Right)
+    }
+
+    fn report_added(&self, name: &str, data: &T, (reporter1, reporter2): &(R1, R2)) -> Result<MayUnsupported<()>, Self::Error> {
+        match <R as DetailReporter<Diff, T, R1>>::report_added(self, name, data, reporter1) {
+            Ok(MayUnsupported::Unsupported) => return Ok(MayUnsupported::Unsupported),
+            Ok(MayUnsupported::Ok(())) => {}
+            Err(e) => return Err(EitherError::Left(e)),
+        }
+        <R as DetailReporter<Diff, T, R2>>::report_added(self, name, data, reporter2).map_err(EitherError::Right)
+    }
+
+    fn report_deleted(&self, name: &str, data: &T, (reporter1, reporter2): &(R1, R2)) -> Result<MayUnsupported<()>, Self::Error> {
+        match <R as DetailReporter<Diff, T, R1>>::report_deleted(self, name, data, reporter1) {
+            Ok(MayUnsupported::Unsupported) => return Ok(MayUnsupported::Unsupported),
+            Ok(MayUnsupported::Ok(())) => {}
+            Err(e) => return Err(EitherError::Left(e)),
+        }
+        <R as DetailReporter<Diff, T, R2>>::report_deleted(self, name, data, reporter2).map_err(EitherError::Right)
+    }
 }
 
 #[doc(hidden)]
@@ -158,24 +210,24 @@ where
         };
         if diff.equal() {
             self.report
-                .report_unchanged(name, diff, reporter)
+                .report_unchanged(name, &diff, reporter)
                 .map_err(|e| Box::new(e) as Box<dyn Error + Send>)
         } else {
             self.report
-                .report_modified(name, diff, reporter)
+                .report_modified(name, &diff, reporter)
                 .map_err(|e| Box::new(e) as Box<dyn Error + Send>)
         }
     }
 
     fn added(&self, name: &str, data: T, reporter: &Reporter) -> Result<MayUnsupported<()>, Box<dyn Error + Send>> {
         self.report
-            .report_added(name, data, reporter)
+            .report_added(name, &data, reporter)
             .map_err(|e| Box::new(e) as Box<dyn Error + Send>)
     }
 
     fn deleted(&self, name: &str, data: T, reporter: &Reporter) -> Result<MayUnsupported<()>, Box<dyn Error + Send>> {
         self.report
-            .report_deleted(name, data, reporter)
+            .report_deleted(name, &data, reporter)
             .map_err(|e| Box::new(e) as Box<dyn Error + Send>)
     }
 }
@@ -184,6 +236,28 @@ pub trait Reporter {
     type Error: Error + Send + 'static;
     fn start(&mut self) -> Result<(), Self::Error>;
     fn finish(self) -> Result<(), Self::Error>;
+}
+
+impl<R1, R2> Reporter for (R1, R2)
+where
+    R1: Reporter,
+    R2: Reporter,
+{
+    type Error = EitherError<R1::Error, R2::Error>;
+
+    fn start(&mut self) -> Result<(), Self::Error> {
+        self.0.start().map_err(EitherError::Left)?;
+        self.1.start().map_err(EitherError::Right)?;
+        Ok(())
+    }
+
+    fn finish(self) -> Result<(), Self::Error> {
+        let result1 = self.0.finish();
+        let result2 = self.1.finish();
+        result1.map_err(EitherError::Left)?;
+        result2.map_err(EitherError::Right)?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Error)]

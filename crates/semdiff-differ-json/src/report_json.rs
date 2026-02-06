@@ -12,7 +12,7 @@ impl<W> DetailReporter<JsonDiff, FileLeaf, JsonReport<W>> for JsonDiffReporter {
     fn report_unchanged(
         &self,
         name: &str,
-        _diff: JsonDiff,
+        _diff: &JsonDiff,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.record_unchanged(name, COMPARES_NAME, ());
@@ -22,7 +22,7 @@ impl<W> DetailReporter<JsonDiff, FileLeaf, JsonReport<W>> for JsonDiffReporter {
     fn report_modified(
         &self,
         name: &str,
-        _diff: JsonDiff,
+        _diff: &JsonDiff,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.record_modified(name, COMPARES_NAME, ());
@@ -32,7 +32,7 @@ impl<W> DetailReporter<JsonDiff, FileLeaf, JsonReport<W>> for JsonDiffReporter {
     fn report_added(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if !is_json_mime(&data.kind) {
@@ -48,7 +48,7 @@ impl<W> DetailReporter<JsonDiff, FileLeaf, JsonReport<W>> for JsonDiffReporter {
     fn report_deleted(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if !is_json_mime(&data.kind) {

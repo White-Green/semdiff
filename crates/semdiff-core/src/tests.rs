@@ -130,7 +130,7 @@ impl DetailReporter<TestDiff, TestLeaf, TestReporter> for TestDetailReporter {
     fn report_unchanged(
         &self,
         name: &str,
-        _diff: TestDiff,
+        _diff: &TestDiff,
         _reporter: &TestReporter,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         self.events
@@ -143,7 +143,7 @@ impl DetailReporter<TestDiff, TestLeaf, TestReporter> for TestDetailReporter {
     fn report_modified(
         &self,
         name: &str,
-        _diff: TestDiff,
+        _diff: &TestDiff,
         _reporter: &TestReporter,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         self.events.lock().unwrap().push(ReportEvent::Modified(name.to_owned()));
@@ -153,7 +153,7 @@ impl DetailReporter<TestDiff, TestLeaf, TestReporter> for TestDetailReporter {
     fn report_added(
         &self,
         name: &str,
-        _data: TestLeaf,
+        _data: &TestLeaf,
         _reporter: &TestReporter,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         self.events.lock().unwrap().push(ReportEvent::Added(name.to_owned()));
@@ -163,7 +163,7 @@ impl DetailReporter<TestDiff, TestLeaf, TestReporter> for TestDetailReporter {
     fn report_deleted(
         &self,
         name: &str,
-        _data: TestLeaf,
+        _data: &TestLeaf,
         _reporter: &TestReporter,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         self.events.lock().unwrap().push(ReportEvent::Deleted(name.to_owned()));

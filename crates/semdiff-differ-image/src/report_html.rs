@@ -64,7 +64,7 @@ impl DetailReporter<ImageDiff, FileLeaf, HtmlReport> for ImageDiffReporter {
     fn report_unchanged(
         &self,
         name: &str,
-        diff: ImageDiff,
+        diff: &ImageDiff,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let detail_image = write_image(reporter, name, "same", &diff.expected().data)?;
@@ -93,7 +93,7 @@ impl DetailReporter<ImageDiff, FileLeaf, HtmlReport> for ImageDiffReporter {
     fn report_modified(
         &self,
         name: &str,
-        diff: ImageDiff,
+        diff: &ImageDiff,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let expected_image = write_image(reporter, name, "expected", &diff.expected().data)?;
@@ -134,7 +134,7 @@ impl DetailReporter<ImageDiff, FileLeaf, HtmlReport> for ImageDiffReporter {
     fn report_added(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let Some(format) = image_format(&data.kind) else {
@@ -169,7 +169,7 @@ impl DetailReporter<ImageDiff, FileLeaf, HtmlReport> for ImageDiffReporter {
     fn report_deleted(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let Some(format) = image_format(&data.kind) else {

@@ -103,7 +103,7 @@ impl DetailReporter<BinaryDiff, FileLeaf, HtmlReport> for BinaryDiffReporter {
     fn report_unchanged(
         &self,
         name: &str,
-        diff: BinaryDiff,
+        diff: &BinaryDiff,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let preview_html = BinaryPreviewTemplate {
@@ -124,7 +124,7 @@ impl DetailReporter<BinaryDiff, FileLeaf, HtmlReport> for BinaryDiffReporter {
     fn report_modified(
         &self,
         name: &str,
-        diff: BinaryDiff,
+        diff: &BinaryDiff,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let diff_changes = diff.changes();
@@ -151,7 +151,7 @@ impl DetailReporter<BinaryDiff, FileLeaf, HtmlReport> for BinaryDiffReporter {
     fn report_added(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let preview_html = BinaryPreviewTemplate {
@@ -172,7 +172,7 @@ impl DetailReporter<BinaryDiff, FileLeaf, HtmlReport> for BinaryDiffReporter {
     fn report_deleted(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let preview_html = BinaryPreviewTemplate {

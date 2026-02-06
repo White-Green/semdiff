@@ -14,7 +14,7 @@ impl<W> DetailReporter<TextDiff, FileLeaf, JsonReport<W>> for TextDiffReporter {
     fn report_unchanged(
         &self,
         name: &str,
-        _diff: TextDiff,
+        _diff: &TextDiff,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.record_unchanged(name, COMPARES_NAME, ());
@@ -24,7 +24,7 @@ impl<W> DetailReporter<TextDiff, FileLeaf, JsonReport<W>> for TextDiffReporter {
     fn report_modified(
         &self,
         name: &str,
-        diff: TextDiff,
+        diff: &TextDiff,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         let s = diff
@@ -53,7 +53,7 @@ impl<W> DetailReporter<TextDiff, FileLeaf, JsonReport<W>> for TextDiffReporter {
     fn report_added(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if !is_text_file(&data.kind, &data.content) {
@@ -66,7 +66,7 @@ impl<W> DetailReporter<TextDiff, FileLeaf, JsonReport<W>> for TextDiffReporter {
     fn report_deleted(
         &self,
         name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &JsonReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if !is_text_file(&data.kind, &data.content) {

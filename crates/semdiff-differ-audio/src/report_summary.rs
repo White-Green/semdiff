@@ -10,7 +10,7 @@ impl<W> DetailReporter<AudioDiff, FileLeaf, SummaryReport<W>> for AudioDiffRepor
     fn report_unchanged(
         &self,
         _name: &str,
-        _diff: AudioDiff,
+        _diff: &AudioDiff,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.increment_unchanged();
@@ -20,7 +20,7 @@ impl<W> DetailReporter<AudioDiff, FileLeaf, SummaryReport<W>> for AudioDiffRepor
     fn report_modified(
         &self,
         _name: &str,
-        _diff: AudioDiff,
+        _diff: &AudioDiff,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         reporter.increment_modified();
@@ -30,7 +30,7 @@ impl<W> DetailReporter<AudioDiff, FileLeaf, SummaryReport<W>> for AudioDiffRepor
     fn report_added(
         &self,
         _name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if audio_extension(&data.kind).is_none()
@@ -48,7 +48,7 @@ impl<W> DetailReporter<AudioDiff, FileLeaf, SummaryReport<W>> for AudioDiffRepor
     fn report_deleted(
         &self,
         _name: &str,
-        data: FileLeaf,
+        data: &FileLeaf,
         reporter: &SummaryReport<W>,
     ) -> Result<MayUnsupported<()>, Self::Error> {
         if audio_extension(&data.kind).is_none()
