@@ -15,15 +15,17 @@ jobs:
       - uses: actions/github-script@v8
         with:
          script: |
-            const { owner, repo } = context.repo;
-            const sha = context.payload.workflow_run.head_sha;
-        
-            await github.rest.repos.createCommitStatus({
-              owner, repo, sha,
-              state: "pending",
-              context: "vrt/report",
-              target_url: context.payload.workflow_run.html_url,
-            });
+           const { owner, repo } = context.repo;
+           const sha = context.payload.workflow_run.head_sha;
+           
+           console.log(JSON.stringify(context.payload));
+
+           await github.rest.repos.createCommitStatus({
+             owner, repo, sha,
+             state: "pending",
+             context: "vrt-report / publish_baseline",
+             target_url: context.payload.workflow_run.html_url,
+           });
 
       - uses: actions/download-artifact@v7
         with:
@@ -63,7 +65,7 @@ jobs:
             await github.rest.repos.createCommitStatus({
               owner, repo, sha,
               state: chosen.state,
-              context: "vrt/report",
+              context: "vrt-report / publish_baseline",
               description: chosen.desc,
               target_url: context.payload.workflow_run.html_url,
             });
@@ -86,7 +88,7 @@ jobs:
             await github.rest.repos.createCommitStatus({
               owner, repo, sha,
               state: "pending",
-              context: "vrt/report",
+              context: "vrt-report / pr_checks",
               target_url: context.payload.workflow_run.html_url,
             });
 
@@ -202,7 +204,7 @@ jobs:
             await github.rest.repos.createCommitStatus({
               owner, repo, sha,
               state: chosen.state,
-              context: "vrt/report",
+              context: "vrt-report / pr_checks",
               description: chosen.desc,
               target_url: context.payload.workflow_run.html_url,
             });
