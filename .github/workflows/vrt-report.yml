@@ -70,7 +70,7 @@ jobs:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           command: |
-            pages deploy --project-name ${{ vars.VRT_CF_PAGES_PROJECT_NAME }} --branch pr-${{ github.event.workflow_run.pull_requests.number }} ./regression
+            pages deploy --project-name ${{ vars.VRT_CF_PAGES_PROJECT_NAME }} --branch pr-${{ github.event.workflow_run.pull_requests[0].number }} ./regression
 
       - uses: actions/github-script@v8
         with:
