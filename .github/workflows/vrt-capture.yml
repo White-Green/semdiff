@@ -1,4 +1,4 @@
-name: capture visual regression test data
+name: vrt-capture
 
 on:
   push:

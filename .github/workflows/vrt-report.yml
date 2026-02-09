@@ -1,4 +1,4 @@
-name: report visual regression test
+name: vrt-report
 on:
   workflow_run:
     workflows: ["vrt-capture"]
