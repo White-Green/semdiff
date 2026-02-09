@@ -1,0 +1,45 @@
+name: capture visual regression test data
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: rust-toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ format('rust-{0}-cargo-{1}', runner.os, hashFiles('Cargo.lock')) }}
+          restore-keys: |
+            ${{ github.event_name == 'pull_request' && format('rust-{0}-cargo-', runner.os) }}
+
+      - uses: actions/cache@v5
+        with:
+          path: target
+          key: ${{ format('rust-{0}-target-vrt-{1}-{2}', runner.os, steps.rust-toolchain.outputs.cachekey, hashFiles('Cargo.lock')) }}
+          restore-keys: |
+            ${{ github.event_name == 'pull_request' && format('rust-{0}-target-vrt-', runner.os) }}
+
+      - run: cargo fetch --locked
+
+      - run: bash ./.github/scripts/capture_vrt_data.sh
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: vrt-data
+          path: data
