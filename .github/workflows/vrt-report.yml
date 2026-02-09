@@ -1,61 +1,15 @@
-name: visual regression test
-
+name: report visual regression test
 on:
-  push:
-    branches:
-      - main
-  pull_request_target:
+  workflow_run:
+    workflows: ["vrt-capture"]
+    types: [completed]
 
 jobs:
-  capture:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
-
-      - id: rust-toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ github.event_name == 'pull_request_target' && format('rust-{0}-pr-{1}-cargo-{2}', runner.os, github.event.pull_request.number, hashFiles('Cargo.lock')) || format('rust-{0}-cargo-{1}', runner.os, hashFiles('Cargo.lock')) }}
-          restore-keys: |
-            ${{ github.event_name == 'pull_request_target' && format('rust-{0}-cargo-{1}', runner.os, hashFiles('Cargo.lock')) }}
-            ${{ github.event_name == 'pull_request_target' && format('rust-{0}-pr-{1}-cargo-', runner.os, github.event.pull_request.number) }}
-            ${{ github.event_name == 'pull_request_target' && format('rust-{0}-cargo-', runner.os) }}
-
-      - uses: actions/cache@v5
-        with:
-          path: target
-          key: ${{ github.event_name == 'pull_request_target' && format('rust-{0}-pr-{1}-target-vrt-{2}-{3}', runner.os, github.event.pull_request.number, steps.rust-toolchain.outputs.cachekey, hashFiles('Cargo.lock')) || format('rust-{0}-target-vrt-{1}-{2}', runner.os, steps.rust-toolchain.outputs.cachekey, hashFiles('Cargo.lock')) }}
-          restore-keys: |
-            ${{ github.event_name == 'pull_request_target' && format('rust-{0}-target-vrt-{1}-{2}', runner.os, steps.rust-toolchain.outputs.cachekey, hashFiles('Cargo.lock')) }}
-            ${{ github.event_name == 'pull_request_target' && format('rust-{0}-pr-{1}-target-vrt-', runner.os, github.event.pull_request.number) }}
-            ${{ github.event_name == 'pull_request_target' && format('rust-{0}-target-vrt-', runner.os) }}
-
-      - run: cargo fetch --locked
-
-      - run: bash ./.github/scripts/capture_vrt_data.sh
-
-      - uses: actions/upload-artifact@v6
-        with:
-          name: vrt-data
-          path: data
-
   publish_baseline:
-    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
-    needs: capture
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      actions: read
     steps:
       - uses: actions/download-artifact@v7
         with:
@@ -74,11 +28,11 @@ jobs:
             r2 object put ${{ secrets.VRT_CF_R2_BUCKET }}/visual-regression/saved.tar.zst --file ./saved.tar.zst
 
   pr_checks:
-    if: github.event_name == 'pull_request_target'
-    needs: capture
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
       issues: write
       pull-requests: write
     steps:
@@ -113,7 +67,7 @@ jobs:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           command: |
-            pages deploy --project-name ${{ vars.VRT_CF_PAGES_PROJECT_NAME }} --branch pr-${{ github.event.pull_request.number }} ./regression
+            pages deploy --project-name ${{ vars.VRT_CF_PAGES_PROJECT_NAME }} --branch pr-${{ github.event.workflow_run.event.pull_request.number }} ./regression
 
       - uses: actions/github-script@v8
         with:
@@ -121,6 +75,7 @@ jobs:
             const fs = require('fs');
             const path = './report.json';
             const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const issue_number = context.payload.workflow_run.event.pull_request.number;
 
             const marker = '<!-- visual-regression-diff-marker -->';
 
@@ -134,11 +89,10 @@ jobs:
             | Added     | ${report.added}     |
             | Deleted   | ${report.deleted}   |
 
-            [Diff Report](https://pr-${{ github.event.pull_request.number }}.${{ vars.VRT_CF_PAGES_PROJECT_NAME }}.pages.dev/)
+            [Diff Report](https://pr-${issue_number}.${{ vars.VRT_CF_PAGES_PROJECT_NAME }}.pages.dev/)
             `;
 
             const { owner, repo } = context.repo;
-            const issue_number = context.payload.pull_request.number;
 
             const { data: comments } = await github.rest.issues.listComments({
               owner,
