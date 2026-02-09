@@ -11,6 +11,19 @@ jobs:
     permissions:
       actions: read
     steps:
+      - uses: actions/github-script@v8
+        with:
+         script: |
+            const { owner, repo } = context.repo;
+            const sha = context.payload.workflow_run.head_sha;
+        
+            await github.rest.repos.createCommitStatus({
+              owner, repo, sha,
+              state: "pending",
+              context: "vrt/report",
+              target_url: context.payload.workflow_run.html_url,
+            });
+
       - uses: actions/download-artifact@v7
         with:
           name: vrt-data
@@ -29,6 +42,31 @@ jobs:
           command: |
             r2 object put ${{ secrets.VRT_CF_R2_BUCKET }}/visual-regression/saved.tar.zst --file ./saved.tar.zst
 
+      - if: always()
+        uses: actions/github-script@v8
+        env:
+          JOB_STATUS: ${{ job.status }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const sha = context.payload.workflow_run.head_sha;
+            
+            const jobStatus = process.env.JOB_STATUS; // success|failure|cancelled
+            const mapping = {
+              success: { state: "success", desc: "VRT passed" },
+              failure: { state: "failure", desc: "VRT failed" },
+              cancelled: { state: "error", desc: "VRT cancelled" },
+            };
+
+            const chosen = mapping[jobStatus] ?? { state: "error", desc: `VRT ${jobStatus}` };
+            await github.rest.repos.createCommitStatus({
+              owner, repo, sha,
+              state: chosen.state,
+              context: "vrt/report",
+              description: chosen.desc,
+              target_url: context.payload.workflow_run.html_url,
+            });
+
   pr_checks:
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
@@ -37,6 +75,19 @@ jobs:
       issues: write
       pull-requests: write
     steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const sha = context.payload.workflow_run.head_sha;
+            
+            await github.rest.repos.createCommitStatus({
+              owner, repo, sha,
+              state: "pending",
+              context: "vrt/report",
+              target_url: context.payload.workflow_run.html_url,
+            });
+
       - uses: actions/download-artifact@v7
         with:
           name: vrt-data
@@ -127,4 +178,29 @@ jobs:
               repo,
               issue_number,
               body,
+            });
+
+      - if: always()
+        uses: actions/github-script@v8
+        env:
+          JOB_STATUS: ${{ job.status }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const sha = context.payload.workflow_run.head_sha;
+            
+            const jobStatus = process.env.JOB_STATUS; // success|failure|cancelled
+            const mapping = {
+              success: { state: "success", desc: "VRT passed" },
+              failure: { state: "failure", desc: "VRT failed" },
+              cancelled: { state: "error", desc: "VRT cancelled" },
+            };
+
+            const chosen = mapping[jobStatus] ?? { state: "error", desc: `VRT ${jobStatus}` };
+            await github.rest.repos.createCommitStatus({
+              owner, repo, sha,
+              state: chosen.state,
+              context: "vrt/report",
+              description: chosen.desc,
+              target_url: context.payload.workflow_run.html_url,
             });
