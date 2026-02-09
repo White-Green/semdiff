@@ -15,15 +15,17 @@ jobs:
       - uses: actions/github-script@v8
         with:
          script: |
-            const { owner, repo } = context.repo;
-            const sha = context.payload.workflow_run.head_sha;
-        
-            await github.rest.repos.createCommitStatus({
-              owner, repo, sha,
-              state: "pending",
-              context: "vrt-report / publish_baseline",
-              target_url: context.payload.workflow_run.html_url,
-            });
+           const { owner, repo } = context.repo;
+           const sha = context.payload.workflow_run.head_sha;
+           
+           console.log(JSON.stringify(context.payload));
+
+           await github.rest.repos.createCommitStatus({
+             owner, repo, sha,
+             state: "pending",
+             context: "vrt-report / publish_baseline",
+             target_url: context.payload.workflow_run.html_url,
+           });
 
       - uses: actions/download-artifact@v7
         with:
