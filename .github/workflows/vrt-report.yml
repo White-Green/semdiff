@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: read
+      statuses: write
     steps:
       - uses: actions/github-script@v8
         with:
@@ -74,6 +75,7 @@ jobs:
       actions: read
       issues: write
       pull-requests: write
+      statuses: write
     steps:
       - uses: actions/github-script@v8
         with:
