@@ -13,18 +13,18 @@ jobs:
       statuses: write
     steps:
       - uses: actions/github-script@v8
+        env:
+          RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         with:
          script: |
            const { owner, repo } = context.repo;
            const sha = context.payload.workflow_run.head_sha;
            
-           console.log(JSON.stringify(context.payload));
-
            await github.rest.repos.createCommitStatus({
              owner, repo, sha,
              state: "pending",
              context: "vrt-report / publish_baseline",
-             target_url: context.payload.workflow_run.html_url,
+             target_url: process.env.RUN_URL,
            });
 
       - uses: actions/download-artifact@v7
@@ -49,6 +49,7 @@ jobs:
         uses: actions/github-script@v8
         env:
           JOB_STATUS: ${{ job.status }}
+          RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -56,18 +57,15 @@ jobs:
             
             const jobStatus = process.env.JOB_STATUS; // success|failure|cancelled
             const mapping = {
-              success: { state: "success", desc: "VRT passed" },
-              failure: { state: "failure", desc: "VRT failed" },
-              cancelled: { state: "error", desc: "VRT cancelled" },
+              success: "success",
+              failure: "failure",
+              cancelled: "error",
             };
-
-            const chosen = mapping[jobStatus] ?? { state: "error", desc: `VRT ${jobStatus}` };
             await github.rest.repos.createCommitStatus({
               owner, repo, sha,
-              state: chosen.state,
+              state: mapping[jobStatus],
               context: "vrt-report / publish_baseline",
-              description: chosen.desc,
-              target_url: context.payload.workflow_run.html_url,
+              target_url: process.env.RUN_URL,
             });
 
   pr_checks:
@@ -80,6 +78,8 @@ jobs:
       statuses: write
     steps:
       - uses: actions/github-script@v8
+        env:
+          RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -89,7 +89,7 @@ jobs:
               owner, repo, sha,
               state: "pending",
               context: "vrt-report / pr_checks",
-              target_url: context.payload.workflow_run.html_url,
+              target_url: process.env.RUN_URL,
             });
 
       - uses: actions/download-artifact@v7
@@ -188,6 +188,7 @@ jobs:
         uses: actions/github-script@v8
         env:
           JOB_STATUS: ${{ job.status }}
+          RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -195,16 +196,13 @@ jobs:
             
             const jobStatus = process.env.JOB_STATUS; // success|failure|cancelled
             const mapping = {
-              success: { state: "success", desc: "VRT passed" },
-              failure: { state: "failure", desc: "VRT failed" },
-              cancelled: { state: "error", desc: "VRT cancelled" },
+              success: "success",
+              failure: "failure",
+              cancelled: "error",
             };
-
-            const chosen = mapping[jobStatus] ?? { state: "error", desc: `VRT ${jobStatus}` };
             await github.rest.repos.createCommitStatus({
               owner, repo, sha,
-              state: chosen.state,
+              state: mapping[jobStatus],
               context: "vrt-report / pr_checks",
-              description: chosen.desc,
-              target_url: context.payload.workflow_run.html_url,
+              target_url: process.env.RUN_URL,
             });
