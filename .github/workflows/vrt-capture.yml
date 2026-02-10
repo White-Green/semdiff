@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      statuses: write
     steps:
       - uses: actions/checkout@v6
 
@@ -43,3 +44,17 @@ jobs:
         with:
           name: vrt-data
           path: data
+
+      - uses: actions/github-script@v8
+        env:
+          SUCCESSOR_NAME: ${{ github.event_name == 'pull_request' && 'pr_checks' || 'publish_baseline' }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const sha = context.payload.pull_request?.head?.sha || context.sha;
+            
+            await github.rest.repos.createCommitStatus({
+              owner, repo, sha,
+              state: "pending",
+              context: `vrt-report / ${process.env.SUCCESSOR_NAME}`,
+            });
