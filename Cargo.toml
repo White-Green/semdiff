@@ -38,7 +38,7 @@ image = { default-features = false, features = [
   "default-formats",
 ], version = "0.25.9" }
 infer = { default-features = false, version = "0.19.0" }
-memmap2 = { default-features = false, version = "0.9.9" }
+memmap2 = { default-features = false, version = "0.9.10" }
 mime = { default-features = false, version = "0.3.17" }
 mime_guess = { default-features = false, features = [
   "rev-mappings",
