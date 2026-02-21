@@ -4,10 +4,10 @@ use semdiff_core::Reporter;
 use std::collections::BTreeMap;
 use std::fs;
 use std::fs::File;
-use xxhash_rust::xxh3::xxh3_128;
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
+use xxhash_rust::xxh3::xxh3_128;
 
 pub struct HtmlReport {
     root: PathBuf,
