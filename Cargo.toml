@@ -62,3 +62,6 @@ similar = { default-features = false, features = [
 ], version = "2.7.0" }
 symphonia = { default-features = true, version = "0.5.5" }
 thiserror = { default-features = false, version = "2.0.18" }
+xxhash-rust = { default-features = false, features = [
+  "xxh3",
+], version = "0.8.15" }

@@ -2,13 +2,12 @@ use askama::Template;
 use dashmap::DashMap;
 use semdiff_core::Reporter;
 use std::collections::BTreeMap;
-use std::collections::hash_map::DefaultHasher;
 use std::fs;
 use std::fs::File;
-use std::hash::{Hash, Hasher};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
+use xxhash_rust::xxh3::xxh3_128;
 
 pub struct HtmlReport {
     root: PathBuf,
@@ -134,9 +133,7 @@ impl HtmlReport {
 
     fn make_detail_stem(name: &str) -> String {
         let sanitized = Self::sanitize_segment(name);
-        let mut hasher = DefaultHasher::new();
-        name.hash(&mut hasher);
-        let hash = hasher.finish();
+        let hash = xxh3_128(name.as_bytes());
         format!("{}_{}", sanitized, hash)
     }
 
