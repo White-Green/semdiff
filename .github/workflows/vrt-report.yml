@@ -42,8 +42,9 @@ jobs:
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          wranglerVersion: "4.67.0"
           command: |
-            r2 object put ${{ secrets.VRT_CF_R2_BUCKET }}/visual-regression/saved.tar.zst --file ./saved.tar.zst
+            r2 object put ${{ secrets.VRT_CF_R2_BUCKET }}/visual-regression/saved.tar.zst --file ./saved.tar.zst --remote
 
       - if: always()
         uses: actions/github-script@v8
@@ -104,8 +105,9 @@ jobs:
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          wranglerVersion: "4.67.0"
           command: |
-            r2 object get ${{ secrets.VRT_CF_R2_BUCKET }}/visual-regression/saved.tar.zst --file main-saved.tar.zst
+            r2 object get ${{ secrets.VRT_CF_R2_BUCKET }}/visual-regression/saved.tar.zst --file main-saved.tar.zst --remote
 
       - run: |
           if [ -f main-saved.tar.zst ]; then
