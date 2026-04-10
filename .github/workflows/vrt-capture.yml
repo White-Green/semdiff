@@ -45,7 +45,7 @@ jobs:
           name: vrt-data
           path: data
 
-      - uses: actions/github-script@v8
+      - uses: actions/github-script@v9
         env:
           SUCCESSOR_NAME: ${{ github.event_name == 'pull_request' && 'pr_checks' || 'publish_baseline' }}
         with:
