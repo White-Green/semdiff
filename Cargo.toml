@@ -22,7 +22,7 @@ semdiff-output = { path = "crates/semdiff-output", version = "0.3.0" }
 askama = { default-features = false, features = [
   "alloc",
   "derive",
-], version = "0.15.4" }
+], version = "0.15.6" }
 clap = { default-features = false, features = [
   "color",
   "derive",
@@ -31,12 +31,12 @@ clap = { default-features = false, features = [
   "std",
   "suggestions",
   "usage",
-], version = "4.5.56" }
+], version = "4.6.0" }
 color = { default-features = false, features = ["std"], version = "0.3.2" }
 dashmap = { default-features = false, version = "6.1.0" }
 image = { default-features = false, features = [
   "default-formats",
-], version = "0.25.9" }
+], version = "0.25.10" }
 infer = { default-features = false, version = "0.19.0" }
 memmap2 = { default-features = false, version = "0.9.10" }
 mime = { default-features = false, version = "0.3.17" }
