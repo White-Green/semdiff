@@ -45,7 +45,7 @@ enum BinaryDetailBody<'a> {
     Diff {
         expected: &'a [u8],
         actual: &'a [u8],
-        diff: &'a similar::TextDiff<'a, 'a, 'a, [u8]>,
+        diff: &'a similar::TextDiff<'a, 'a, [u8]>,
     },
     Single {
         label: &'a str,
@@ -54,7 +54,7 @@ enum BinaryDetailBody<'a> {
 }
 
 fn diff_iter<'a>(
-    diff: &'a similar::TextDiff<[u8]>,
+    diff: &'a similar::TextDiff<'a, 'a, [u8]>,
     expected: &'a [u8],
     actual: &'a [u8],
 ) -> impl Iterator<Item = (ChangeTag, &'a [u8])> {

@@ -25,7 +25,7 @@ enum TextPreviewBody<'a> {
         body: &'a str,
     },
     Modified {
-        diff: &'a similar::TextDiff<'a, 'a, 'a, [u8]>,
+        diff: &'a similar::TextDiff<'a, 'a, [u8]>,
     },
     Added {
         body: &'a str,
@@ -49,7 +49,7 @@ struct TextDetailTemplate<'a> {
 
 enum TextDetailBody<'a> {
     Diff {
-        lines: &'a similar::TextDiff<'a, 'a, 'a, [u8]>,
+        lines: &'a similar::TextDiff<'a, 'a, [u8]>,
     },
     Single {
         label: &'a str,

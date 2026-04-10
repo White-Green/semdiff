@@ -29,12 +29,12 @@ impl Diff for TextDiff {
 }
 
 impl TextDiff {
-    fn diff(&self) -> similar::TextDiff<'_, '_, '_, [u8]> {
+    fn diff(&self) -> similar::TextDiff<'_, '_, [u8]> {
         text_diff_lines(&self.expected[..], &self.actual[..])
     }
 }
 
-fn text_diff_lines<'a>(expected: &'a [u8], actual: &'a [u8]) -> similar::TextDiff<'a, 'a, 'a, [u8]> {
+fn text_diff_lines<'a>(expected: &'a [u8], actual: &'a [u8]) -> similar::TextDiff<'a, 'a, [u8]> {
     TextDiffConfig::default()
         .algorithm(similar::Algorithm::Patience)
         .diff_lines(expected, actual)
