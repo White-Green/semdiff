@@ -36,22 +36,22 @@ impl BinaryDiff {
         &self.actual
     }
 
-    fn changes(&self) -> similar::TextDiff<'_, '_, '_, [u8]> {
+    fn changes(&self) -> similar::TextDiff<'_, '_, [u8]> {
         binary_diff_changes(&self.expected[..], &self.actual[..])
     }
 
-    fn stat<'a>(changes: &'a similar::TextDiff<'a, 'a, 'a, [u8]>) -> ChangeStat {
+    fn stat<'a>(changes: &'a similar::TextDiff<'a, 'a, [u8]>) -> ChangeStat {
         binary_change_stat(changes)
     }
 }
 
-fn binary_diff_changes<'a>(expected: &'a [u8], actual: &'a [u8]) -> similar::TextDiff<'a, 'a, 'a, [u8]> {
+fn binary_diff_changes<'a>(expected: &'a [u8], actual: &'a [u8]) -> similar::TextDiff<'a, 'a, [u8]> {
     TextDiffConfig::default()
         .algorithm(similar::Algorithm::Patience)
         .diff_chars(expected, actual)
 }
 
-fn binary_change_stat<'a>(changes: &'a similar::TextDiff<'a, 'a, 'a, [u8]>) -> ChangeStat {
+fn binary_change_stat<'a>(changes: &'a similar::TextDiff<'a, 'a, [u8]>) -> ChangeStat {
     changes
         .iter_all_changes()
         .fold(ChangeStat::default(), |stat, change| match change.tag() {

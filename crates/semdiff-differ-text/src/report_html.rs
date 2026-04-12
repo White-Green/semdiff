@@ -21,18 +21,10 @@ struct TextPreviewTemplate<'a> {
 }
 
 enum TextPreviewBody<'a> {
-    Unchanged {
-        body: &'a str,
-    },
-    Modified {
-        diff: &'a similar::TextDiff<'a, 'a, 'a, [u8]>,
-    },
-    Added {
-        body: &'a str,
-    },
-    Deleted {
-        body: &'a str,
-    },
+    Unchanged { body: &'a str },
+    Modified { diff: &'a similar::TextDiff<'a, 'a, [u8]> },
+    Added { body: &'a str },
+    Deleted { body: &'a str },
 }
 
 impl TextPreviewTemplate<'_> {
@@ -48,13 +40,8 @@ struct TextDetailTemplate<'a> {
 }
 
 enum TextDetailBody<'a> {
-    Diff {
-        lines: &'a similar::TextDiff<'a, 'a, 'a, [u8]>,
-    },
-    Single {
-        label: &'a str,
-        body: &'a str,
-    },
+    Diff { lines: &'a similar::TextDiff<'a, 'a, [u8]> },
+    Single { label: &'a str, body: &'a str },
 }
 
 impl TextDetailBody<'_> {
