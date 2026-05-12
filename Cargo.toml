@@ -22,7 +22,7 @@ semdiff-output = { path = "crates/semdiff-output", version = "0.3.0" }
 askama = { default-features = false, features = [
   "alloc",
   "derive",
-], version = "0.15.6" }
+], version = "0.16.0" }
 clap = { default-features = false, features = [
   "color",
   "derive",
