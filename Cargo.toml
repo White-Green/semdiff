@@ -31,7 +31,7 @@ clap = { default-features = false, features = [
   "std",
   "suggestions",
   "usage",
-], version = "4.6.0" }
+], version = "4.6.1" }
 color = { default-features = false, features = ["std"], version = "0.3.3" }
 dashmap = { default-features = false, version = "6.1.0" }
 image = { default-features = false, features = [
