@@ -38,7 +38,7 @@ jobs:
           OUT_ROOT="$(pwd)/actual"
           tar -I 'zstd -19' -cf saved.tar.zst -C "${OUT_ROOT}" .
 
-      - uses: cloudflare/wrangler-action@v3
+      - uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
@@ -101,7 +101,7 @@ jobs:
           github-token: ${{ github.token }}
 
       - continue-on-error: true
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
@@ -122,7 +122,7 @@ jobs:
           tar -xaf .github/tmp/semdiff.tar.gz -C .github/tmp
           .github/tmp/semdiff/semdiff ./expected ./actual --output-html regression/index.html --output-json ./report.json
 
-      - uses: cloudflare/wrangler-action@v3
+      - uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
