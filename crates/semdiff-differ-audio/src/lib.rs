@@ -8,17 +8,17 @@ use semdiff_core::fs::FileLeaf;
 use semdiff_core::{Diff, DiffCalculator, MayUnsupported};
 use std::f32::consts::PI;
 use std::fmt::{Debug, Formatter};
-use std::io::{Cursor, ErrorKind};
+use std::io::Cursor;
 use std::ops::Range;
 use std::sync::{Arc, LazyLock};
 use std::{convert, iter};
-use symphonia::core::audio::{AudioBuffer, SignalSpec};
-use symphonia::core::codecs::DecoderOptions;
+use symphonia::core::audio::AudioSpec;
+use symphonia::core::codecs::audio::AudioDecoderOptions;
 use symphonia::core::errors::Error as SymphoniaError;
-use symphonia::core::formats::FormatOptions;
+use symphonia::core::formats::probe::Hint;
+use symphonia::core::formats::{FormatOptions, TrackType};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
-use symphonia::core::probe::Hint;
 use thiserror::Error;
 
 pub mod report_html;
@@ -181,6 +181,8 @@ pub enum AudioDecodeError {
     Symphonia(#[from] SymphoniaError),
     #[error("no default audio track")]
     NoDefaultTrack,
+    #[error("missing audio codec parameters")]
+    MissingAudioCodecParameters,
     #[error("missing sample rate")]
     MissingSampleRate,
 }
@@ -706,50 +708,49 @@ impl SpectrogramAnalyzer {
 
         let owned = content.to_vec();
         let mss = MediaSourceStream::new(Box::new(Cursor::new(owned)), Default::default());
-        let probed = symphonia::default::get_probe().format(
-            &hint,
-            mss,
-            &FormatOptions::default(),
-            &MetadataOptions::default(),
-        )?;
-        let mut format = probed.format;
-        let track = format.default_track().ok_or(AudioDecodeError::NoDefaultTrack)?;
+        let mut format =
+            symphonia::default::get_probe().probe(&hint, mss, FormatOptions::default(), MetadataOptions::default())?;
+        let track = format
+            .default_track(TrackType::Audio)
+            .ok_or(AudioDecodeError::NoDefaultTrack)?;
         let track_id = track.id;
-        let codec_params = track.codec_params.clone();
-        let mut decoder = symphonia::default::get_codecs().make(&codec_params, &DecoderOptions::default())?;
+        let codec_params = track
+            .codec_params
+            .clone()
+            .ok_or(AudioDecodeError::MissingAudioCodecParameters)?;
+        let audio_codec_params = codec_params
+            .audio()
+            .ok_or(AudioDecodeError::MissingAudioCodecParameters)?;
+        let mut decoder =
+            symphonia::default::get_codecs().make_audio_decoder(audio_codec_params, &AudioDecoderOptions::default())?;
 
-        let mut samples = vec![Vec::new()];
-        let mut signal_spec = if let Some(rate) = codec_params.sample_rate
-            && let Some(channels) = codec_params.channels
-        {
-            Some(SignalSpec { rate, channels })
-        } else {
-            None
+        let mut samples = Vec::<Vec<f32>>::new();
+        let mut signal_spec = match (audio_codec_params.sample_rate, audio_codec_params.channels.clone()) {
+            (Some(rate), Some(channels)) => Some(AudioSpec::new(rate, channels)),
+            _ => None,
         };
-        let mut sample_buf = None::<AudioBuffer<f32>>;
         loop {
             let packet = match format.next_packet() {
-                Ok(packet) => packet,
+                Ok(Some(packet)) => packet,
+                Ok(None) => break,
                 Err(SymphoniaError::ResetRequired) => {
                     decoder.reset();
                     continue;
                 }
-                Err(SymphoniaError::IoError(e)) if e.kind() == ErrorKind::UnexpectedEof => break,
                 Err(err) => return Err(err.into()),
             };
-            if packet.track_id() != track_id {
+            if packet.track_id != track_id {
                 continue;
             }
             let decoded = decoder.decode(&packet)?;
-            let spec = *decoded.spec();
             if signal_spec.is_none() {
-                signal_spec = Some(spec);
+                signal_spec = Some(decoded.spec().clone());
             }
-            let sample_buf = sample_buf.get_or_insert_with(|| AudioBuffer::<f32>::new(decoded.capacity() as u64, spec));
-            decoded.convert(sample_buf);
-            samples.resize_with(sample_buf.planes().planes().len(), Vec::new);
-            for (plane, samples) in sample_buf.planes().planes().iter().zip(samples.iter_mut()) {
-                samples.extend_from_slice(plane);
+            let mut packet_samples = Vec::<Vec<f32>>::new();
+            decoded.copy_to_vecs_planar(&mut packet_samples);
+            samples.resize_with(packet_samples.len(), Vec::new);
+            for (plane, samples) in packet_samples.into_iter().zip(samples.iter_mut()) {
+                samples.extend(plane);
             }
         }
 
@@ -758,13 +759,17 @@ impl SpectrogramAnalyzer {
         };
 
         let max_len = samples.iter().map(|channel| channel.len()).max().unwrap_or(0);
-        let duration_seconds = max_len as f32 / signal_spec.rate as f32;
+        let sample_rate = signal_spec.rate();
+        if sample_rate == 0 {
+            return Err(AudioDecodeError::MissingSampleRate);
+        }
+        let duration_seconds = max_len as f32 / sample_rate as f32;
 
         let spectrograms = samples.iter().map(|sample| self.compute(sample)).collect::<Vec<_>>();
 
         Ok(AudioDecoded {
-            sample_rate: signal_spec.rate,
-            channels: signal_spec.channels.count() as u16,
+            sample_rate,
+            channels: signal_spec.channels().count() as u16,
             duration_seconds,
             samples,
             spectrograms,
