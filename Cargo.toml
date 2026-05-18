@@ -33,7 +33,7 @@ clap = { default-features = false, features = [
   "usage",
 ], version = "4.6.1" }
 color = { default-features = false, features = ["std"], version = "0.3.3" }
-dashmap = { default-features = false, version = "6.1.0" }
+dashmap = { default-features = false, version = "6.2.1" }
 image = { default-features = false, features = [
   "default-formats",
 ], version = "0.25.10" }
