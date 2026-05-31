@@ -28,7 +28,7 @@ enum JsonPreviewBody<'a> {
 
 impl JsonPreviewTemplate<'_> {
     fn is_equal(line: &&JsonDiffLine) -> bool {
-        matches!(line.tag(), ChangeTag::Unchanged)
+        line.is_equal_for_result()
     }
 }
 
@@ -58,15 +58,23 @@ impl DetailReporter<JsonDiff, FileLeaf, HtmlReport> for JsonDiffReporter {
         diff: &JsonDiff,
         reporter: &HtmlReport,
     ) -> Result<MayUnsupported<()>, Self::Error> {
-        let JsonDiffBody::Equal(body) = diff.body() else {
+        let JsonDiffBody::Equal { body, ignored_lines } = diff.body() else {
             debug_assert!(false, "report_unchanged called with modified diff");
             return Ok(MayUnsupported::Ok(()));
         };
         let preview_html = JsonPreviewTemplate {
             body: JsonPreviewBody::Unchanged { body },
         };
-        let detail_html = JsonDetailTemplate {
-            detail: JsonDetailBody::Single { label: "same", body },
+        let detail_html = if ignored_lines.is_empty() {
+            JsonDetailTemplate {
+                detail: JsonDetailBody::Single { label: "same", body },
+            }
+        } else {
+            JsonDetailTemplate {
+                detail: JsonDetailBody::Diff {
+                    lines: &ignored_lines[..],
+                },
+            }
         };
         reporter.record_unchanged(name, COMPARES_NAME, preview_html, detail_html)?;
         Ok(MayUnsupported::Ok(()))
@@ -83,10 +91,10 @@ impl DetailReporter<JsonDiff, FileLeaf, HtmlReport> for JsonDiffReporter {
             return Ok(MayUnsupported::Ok(()));
         };
         let preview_html = JsonPreviewTemplate {
-            body: JsonPreviewBody::Modified { lines },
+            body: JsonPreviewBody::Modified { lines: &lines[..] },
         };
         let detail_html = JsonDetailTemplate {
-            detail: JsonDetailBody::Diff { lines },
+            detail: JsonDetailBody::Diff { lines: &lines[..] },
         };
         reporter.record_modified(name, COMPARES_NAME, preview_html, detail_html)?;
         Ok(MayUnsupported::Ok(()))

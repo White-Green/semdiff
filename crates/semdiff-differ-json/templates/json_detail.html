@@ -133,6 +133,23 @@
         <div class="json-detail-cell line-no actual">{{ actual_index.next().unwrap() }}</div>
         <div class="json-detail-cell cell-right same"><span class="cell-text">{{ line.display_actual() }}</span>
         </div>
+        {% when ChangeTag::Ignored %}
+        {% if line.has_expected() %}
+        <div class="json-detail-cell line-no expected">{{ expected_index.next().unwrap() }}</div>
+        <div class="json-detail-cell cell-left same"><span class="cell-text">{{ line.display_expected() }}</span>
+        </div>
+        {% else %}
+        <div class="json-detail-cell line-no expected"></div>
+        <div class="json-detail-cell cell-left empty"><span class="cell-text"></span></div>
+        {% endif %}
+        {% if line.has_actual() %}
+        <div class="json-detail-cell line-no actual">{{ actual_index.next().unwrap() }}</div>
+        <div class="json-detail-cell cell-right same"><span class="cell-text">{{ line.display_actual() }}</span>
+        </div>
+        {% else %}
+        <div class="json-detail-cell line-no actual"></div>
+        <div class="json-detail-cell cell-right empty"><span class="cell-text"></span></div>
+        {% endif %}
         {% when ChangeTag::Deleted %}
         <div class="json-detail-cell line-no expected">{{ expected_index.next().unwrap() }}</div>
         <div class="json-detail-cell cell-left deleted"><span
