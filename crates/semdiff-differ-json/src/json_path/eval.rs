@@ -192,28 +192,26 @@ where
         let mut descendant_active = ActiveSegmentsVec::new();
         let mut matched = false;
         for &segments in &self.child_active {
-            Self::advance_child_candidate(
-                root,
-                parent_current,
-                segments,
-                step,
-                child,
-                &mut child_active,
-                &mut descendant_active,
-                &mut matched,
-            );
+            let Some(Segment::Child(selectors)) = segments.first() else {
+                continue;
+            };
+            if selectors
+                .iter()
+                .any(|selector| Self::selector_matches(root, parent_current, selector, step, child))
+            {
+                activate_segments(&segments[1..], &mut child_active, &mut descendant_active, &mut matched);
+            }
         }
         for &segments in &self.descendant_active[..descendant_start] {
-            Self::advance_descendant_candidate(
-                root,
-                parent_current,
-                segments,
-                step,
-                child,
-                &mut child_active,
-                &mut descendant_active,
-                &mut matched,
-            );
+            let Some(Segment::Descendant(selectors)) = segments.first() else {
+                continue;
+            };
+            if selectors
+                .iter()
+                .any(|selector| Self::selector_matches(root, parent_current, selector, step, child))
+            {
+                activate_segments(&segments[1..], &mut child_active, &mut descendant_active, &mut matched);
+            }
         }
 
         let shared_descendant_active = &mut *self.descendant_active;
@@ -229,48 +227,6 @@ where
             descendant_start,
             child_active,
             matched,
-        }
-    }
-
-    fn advance_child_candidate(
-        root: V,
-        parent: V,
-        segments: ActiveSegments<'path>,
-        step: JsonPathMatchStep<'_>,
-        child: V,
-        child_active: &mut ActiveSegmentsVec<'path>,
-        descendant_active: &mut ActiveSegmentsVec<'path>,
-        matched: &mut bool,
-    ) {
-        let Some(Segment::Child(selectors)) = segments.first() else {
-            return;
-        };
-        if selectors
-            .iter()
-            .any(|selector| Self::selector_matches(root, parent, selector, step, child))
-        {
-            activate_segments(&segments[1..], child_active, descendant_active, matched);
-        }
-    }
-
-    fn advance_descendant_candidate(
-        root: V,
-        parent: V,
-        segments: ActiveSegments<'path>,
-        step: JsonPathMatchStep<'_>,
-        child: V,
-        child_active: &mut ActiveSegmentsVec<'path>,
-        descendant_active: &mut ActiveSegmentsVec<'path>,
-        matched: &mut bool,
-    ) {
-        let Some(Segment::Descendant(selectors)) = segments.first() else {
-            return;
-        };
-        if selectors
-            .iter()
-            .any(|selector| Self::selector_matches(root, parent, selector, step, child))
-        {
-            activate_segments(&segments[1..], child_active, descendant_active, matched);
         }
     }
 
