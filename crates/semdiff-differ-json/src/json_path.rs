@@ -1,825 +1,47 @@
-use crate::json_path::integer_literal::IntegerLiteral;
-use crate::json_path::number_literal::{Number, NumberLiteral};
-use crate::json_path::string_literal::StringLiteral;
-use nom::branch::alt;
-use nom::bytes::complete::{tag, take_while, take_while1};
-use nom::character::complete::char;
-use nom::combinator::{all_consuming, map, opt, recognize, value};
-use nom::error::ErrorKind;
-use nom::multi::{many0, separated_list0};
-use nom::sequence::{delimited, pair, preceded, terminated};
-use nom::{Err, IResult, Parser};
-use std::fmt;
-use std::marker::PhantomData;
-use std::str::FromStr;
-
+pub(crate) mod eval;
 mod integer_literal;
 mod number_literal;
+mod parser;
 mod string_literal;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct JsonPath {
-    segments: Vec<Segment>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum Segment {
-    Child(Vec<Selector>),
-    Descendant(Vec<Selector>),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum Selector {
-    Name(String),
-    Wildcard,
-    Slice {
-        start: Option<i64>,
-        end: Option<i64>,
-        step: Option<i64>,
-    },
-    Index(i64),
-    Filter(LogicalExpr),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct Query {
-    root: QueryRoot,
-    segments: Vec<Segment>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum QueryRoot {
-    Root,
-    Current,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum LogicalExpr {
-    Or(Box<LogicalExpr>, Box<LogicalExpr>),
-    And(Box<LogicalExpr>, Box<LogicalExpr>),
-    Not(Box<LogicalExpr>),
-    Paren(Box<LogicalExpr>),
-    Comparison {
-        left: Comparable,
-        op: ComparisonOp,
-        right: Comparable,
-    },
-    Test(TestExpr),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum TestExpr {
-    Query(Query),
-    Function(FunctionExpr),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum Comparable {
-    Literal(Literal),
-    SingularQuery(SingularQuery),
-    Function(FunctionExpr),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct SingularQuery {
-    root: QueryRoot,
-    segments: Vec<SingularSegment>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum SingularSegment {
-    Name(String),
-    Index(i64),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ComparisonOp {
-    Eq,
-    Ne,
-    Lt,
-    Le,
-    Gt,
-    Ge,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum Literal {
-    Number(Number),
-    String(String),
-    Bool(bool),
-    Null,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct FunctionExpr {
-    name: String,
-    arguments: Vec<FunctionArgument>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum FunctionArgument {
-    Literal(Literal),
-    Query(Query),
-    LogicalExpr(LogicalExpr),
-    Function(FunctionExpr),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParseError(nom::Err<nom::error::Error<String>>);
-
-impl ParseError {
-    pub fn as_nom_error(&self) -> &nom::Err<nom::error::Error<String>> {
-        &self.0
-    }
-}
-
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self.0)
-    }
-}
-
-impl std::error::Error for ParseError {}
-
-impl From<nom::Err<nom::error::Error<&str>>> for ParseError {
-    fn from(value: nom::Err<nom::error::Error<&str>>) -> Self {
-        match value {
-            nom::Err::Incomplete(needed) => ParseError(nom::Err::Incomplete(needed)),
-            nom::Err::Error(error) => ParseError(nom::Err::Error(nom::error::Error {
-                input: error.input.to_owned(),
-                code: error.code,
-            })),
-            nom::Err::Failure(error) => ParseError(nom::Err::Failure(nom::error::Error {
-                input: error.input.to_owned(),
-                code: error.code,
-            })),
-        }
-    }
-}
-
-impl FromStr for JsonPath {
-    type Err = ParseError;
-
-    fn from_str(input: &str) -> Result<Self, Self::Err> {
-        parse(input)
-    }
-}
-
-pub trait JsonPathValue<'a>: Copy + Sized {
-    type ArrayType: 'a + JsonPathArray<'a, JsonPathValue = Self>;
-    type ObjectType: 'a + JsonPathObject<'a, JsonPathValue = Self>;
-
-    fn as_array(&self) -> Option<Self::ArrayType>;
-    fn as_object(&self) -> Option<Self::ObjectType>;
-    fn as_integer(&self) -> Option<i64>;
-    fn as_float(&self) -> Option<f64>;
-    fn as_bool(&self) -> Option<bool>;
-    fn as_str(&self) -> Option<&'a str>;
-    fn is_null(&self) -> bool;
-}
-
-pub trait JsonPathArray<'a> {
-    type JsonPathValue: JsonPathValue<'a>;
-
-    fn len(&self) -> usize;
-    fn element(&self, index: usize) -> Option<Self::JsonPathValue>;
-}
-
-pub trait JsonPathObject<'a> {
-    type JsonPathValue: JsonPathValue<'a>;
-
-    fn member(&self, name: &str) -> Option<Self::JsonPathValue>;
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct SerdeJsonPathArray<'a> {
-    values: &'a [serde_json::Value],
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct SerdeJsonPathObject<'a> {
-    values: &'a serde_json::Map<String, serde_json::Value>,
-}
-
-impl<'a> JsonPathValue<'a> for &'a serde_json::Value {
-    type ArrayType = SerdeJsonPathArray<'a>;
-    type ObjectType = SerdeJsonPathObject<'a>;
-
-    fn as_array(&self) -> Option<Self::ArrayType> {
-        match *self {
-            serde_json::Value::Array(values) => Some(SerdeJsonPathArray { values }),
-            _ => None,
-        }
-    }
-
-    fn as_object(&self) -> Option<Self::ObjectType> {
-        match *self {
-            serde_json::Value::Object(values) => Some(SerdeJsonPathObject { values }),
-            _ => None,
-        }
-    }
-
-    fn as_integer(&self) -> Option<i64> {
-        match *self {
-            serde_json::Value::Number(value) => value.as_i64(),
-            _ => None,
-        }
-    }
-
-    fn as_float(&self) -> Option<f64> {
-        match *self {
-            serde_json::Value::Number(value) => value.as_f64(),
-            _ => None,
-        }
-    }
-
-    fn as_bool(&self) -> Option<bool> {
-        match *self {
-            serde_json::Value::Bool(value) => Some(*value),
-            _ => None,
-        }
-    }
-
-    fn as_str(&self) -> Option<&'a str> {
-        match *self {
-            serde_json::Value::String(value) => Some(value.as_str()),
-            _ => None,
-        }
-    }
-
-    fn is_null(&self) -> bool {
-        matches!(*self, serde_json::Value::Null)
-    }
-}
-
-impl<'a> JsonPathArray<'a> for SerdeJsonPathArray<'a> {
-    type JsonPathValue = &'a serde_json::Value;
-
-    fn len(&self) -> usize {
-        self.values.len()
-    }
-
-    fn element(&self, index: usize) -> Option<Self::JsonPathValue> {
-        self.values.get(index)
-    }
-}
-
-impl<'a> JsonPathObject<'a> for SerdeJsonPathObject<'a> {
-    type JsonPathValue = &'a serde_json::Value;
-
-    fn member(&self, name: &str) -> Option<Self::JsonPathValue> {
-        self.values.get(name)
-    }
-}
-
-pub(crate) struct JsonPathMatcher<'a> {
-    paths: &'a [JsonPath],
-    active: Vec<ActiveState>,
-}
-
-pub(crate) struct JsonPathMatchState<'state, 'value, V>
-where
-    V: JsonPathValue<'value>,
-{
-    paths: &'state [JsonPath],
-    root: V,
-    current: V,
-    active: &'state mut Vec<ActiveState>,
-    start: usize,
-    end: usize,
-    matched: bool,
-    _marker: PhantomData<&'value ()>,
-}
-
-impl<'state, 'value, V> JsonPathMatchState<'state, 'value, V>
-where
-    V: JsonPathValue<'value>,
-{
-    pub(crate) fn is_match(&self) -> bool {
-        self.matched
-    }
-
-    pub(crate) fn advance_name<'child>(&'child mut self, name: &str) -> Option<JsonPathMatchState<'child, 'value, V>> {
-        let child = self.current.as_object()?.member(name)?;
-        Some(self.advance(JsonPathMatchStep::Name(name), child))
-    }
-
-    pub(crate) fn advance_index<'child>(
-        &'child mut self,
-        index: usize,
-    ) -> Option<JsonPathMatchState<'child, 'value, V>> {
-        let child = self.current.as_array()?.element(index)?;
-        Some(self.advance(JsonPathMatchStep::Index(index), child))
-    }
-
-    fn advance<'child>(
-        &'child mut self,
-        step: JsonPathMatchStep<'_>,
-        child: V,
-    ) -> JsonPathMatchState<'child, 'value, V> {
-        let paths = self.paths;
-        let root = self.root;
-        let parent_current = self.current;
-        let parent_start = self.start;
-        let parent_end = self.end;
-        let start = self.active.len();
-        let active = &mut *self.active;
-        let mut next = JsonPathMatchState {
-            paths,
-            root,
-            current: child,
-            active,
-            start,
-            end: start,
-            matched: false,
-            _marker: PhantomData,
-        };
-        for active_index in parent_start..parent_end {
-            let active = next.active[active_index];
-            let Some(segment) = next.paths[active.path_index].segments.get(active.segment_index) else {
-                continue;
-            };
-            match segment {
-                Segment::Child(selectors) => {
-                    if selectors
-                        .iter()
-                        .any(|selector| Self::selector_matches(parent_current, selector, step))
-                    {
-                        next.push_state(active.path_index, active.segment_index + 1);
-                    }
-                }
-                Segment::Descendant(selectors) => {
-                    next.push_state(active.path_index, active.segment_index);
-                    if selectors
-                        .iter()
-                        .any(|selector| Self::selector_matches(parent_current, selector, step))
-                    {
-                        next.push_state(active.path_index, active.segment_index + 1);
-                    }
-                }
-            }
-        }
-        next
-    }
-
-    fn push_state(&mut self, path_index: usize, segment_index: usize) {
-        if segment_index == self.paths[path_index].segments.len() {
-            self.matched = true;
-            return;
-        }
-        let active = ActiveState {
-            path_index,
-            segment_index,
-        };
-        if !self.active[self.start..self.end].contains(&active) {
-            self.active.push(active);
-            self.end += 1;
-        }
-    }
-
-    fn selector_matches(parent: V, selector: &Selector, step: JsonPathMatchStep<'_>) -> bool {
-        match (selector, step) {
-            (Selector::Name(name), JsonPathMatchStep::Name(step_name)) => name == step_name,
-            (Selector::Wildcard, JsonPathMatchStep::Name(_) | JsonPathMatchStep::Index(_)) => true,
-            (Selector::Index(index), JsonPathMatchStep::Index(array_index)) => {
-                Self::index_matches(parent, *index, array_index)
-            }
-            (Selector::Slice { start, end, step }, JsonPathMatchStep::Index(array_index)) => {
-                Self::slice_matches(parent, *start, *end, *step, array_index)
-            }
-            _ => false,
-        }
-    }
-
-    fn index_matches(parent: V, index: i64, array_index: usize) -> bool {
-        let Some(array) = parent.as_array() else {
-            return false;
-        };
-        let array_len = array.len();
-        let normalized = if index < 0 { array_len as i64 + index } else { index };
-        normalized >= 0 && usize::try_from(normalized).is_ok_and(|index| index == array_index)
-    }
-
-    fn slice_matches(parent: V, start: Option<i64>, end: Option<i64>, step: Option<i64>, array_index: usize) -> bool {
-        let Some(array) = parent.as_array() else {
-            return false;
-        };
-        let array_len = array.len();
-        let len = array_len as i64;
-        let index = array_index as i64;
-        let step = step.unwrap_or(1);
-        if step == 0 {
-            return false;
-        }
-        let normalize = |value: i64| if value < 0 { len + value } else { value };
-        if step > 0 {
-            let start = start.map(normalize).unwrap_or(0).clamp(0, len);
-            let end = end.map(normalize).unwrap_or(len).clamp(0, len);
-            index >= start && index < end && (index - start) % step == 0
-        } else {
-            let start = start.map(normalize).unwrap_or(len - 1).clamp(-1, len - 1);
-            let end = end.map(normalize).unwrap_or(-1).clamp(-1, len - 1);
-            index <= start && index > end && (start - index) % -step == 0
-        }
-    }
-}
-
-impl<'state, 'value, V> Drop for JsonPathMatchState<'state, 'value, V>
-where
-    V: JsonPathValue<'value>,
-{
-    fn drop(&mut self) {
-        self.active.truncate(self.start);
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ActiveState {
-    path_index: usize,
-    segment_index: usize,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum JsonPathMatchStep<'a> {
-    Name(&'a str),
-    Index(usize),
-}
-
-impl<'a> JsonPathMatcher<'a> {
-    pub(crate) fn new(paths: &'a [JsonPath]) -> Self {
-        Self {
-            paths,
-            active: Vec::new(),
-        }
-    }
-
-    pub(crate) fn root_state<'state, 'value, V>(&'state mut self, root: V) -> JsonPathMatchState<'state, 'value, V>
-    where
-        V: JsonPathValue<'value>,
-    {
-        self.active.clear();
-        let mut state = JsonPathMatchState {
-            paths: self.paths,
-            root,
-            current: root,
-            active: &mut self.active,
-            start: 0,
-            end: 0,
-            matched: false,
-            _marker: PhantomData,
-        };
-        for path_index in 0..self.paths.len() {
-            state.push_state(path_index, 0);
-        }
-        state
-    }
-}
-
-// JSONPath parser
-// see: RFC 9535
-
-pub fn parse(input: &str) -> Result<JsonPath, ParseError> {
-    all_consuming(jsonpath_query)
-        .parse(input)
-        .map(|(_, query)| JsonPath {
-            segments: query.segments,
-        })
-        .map_err(ParseError::from)
-}
-
-fn jsonpath_query(input: &str) -> IResult<&str, Query> {
-    map(pair(char('$'), segments), |(_, segments)| Query {
-        root: QueryRoot::Root,
-        segments,
-    })
-    .parse(input)
-}
-
-fn filter_query(input: &str) -> IResult<&str, Query> {
-    alt((
-        map(pair(char('@'), segments), |(_, segments)| Query {
-            root: QueryRoot::Current,
-            segments,
-        }),
-        jsonpath_query,
-    ))
-    .parse(input)
-}
-
-fn segments(input: &str) -> IResult<&str, Vec<Segment>> {
-    many0(preceded(s, segment)).parse(input)
-}
-
-fn segment(input: &str) -> IResult<&str, Segment> {
-    alt((descendant_segment, child_segment)).parse(input)
-}
-
-fn child_segment(input: &str) -> IResult<&str, Segment> {
-    alt((
-        map(bracketed_selection, Segment::Child),
-        map(
-            preceded(
-                char('.'),
-                alt((
-                    value(vec![Selector::Wildcard], char('*')),
-                    map(member_name_shorthand, |name| vec![Selector::Name(name)]),
-                )),
-            ),
-            Segment::Child,
-        ),
-    ))
-    .parse(input)
-}
-
-fn descendant_segment(input: &str) -> IResult<&str, Segment> {
-    map(
-        preceded(
-            tag(".."),
-            alt((
-                bracketed_selection,
-                value(vec![Selector::Wildcard], char('*')),
-                map(member_name_shorthand, |name| vec![Selector::Name(name)]),
-            )),
-        ),
-        Segment::Descendant,
-    )
-    .parse(input)
-}
-
-fn bracketed_selection(input: &str) -> IResult<&str, Vec<Selector>> {
-    delimited(
-        terminated(char('['), s),
-        separated_list0(delimited(s, char(','), s), selector),
-        preceded(s, char(']')),
-    )
-    .parse(input)
-}
-
-fn selector(input: &str) -> IResult<&str, Selector> {
-    alt((
-        map(StringLiteral::new(), Selector::Name),
-        value(Selector::Wildcard, char('*')),
-        slice_selector,
-        map(index_selector, Selector::Index),
-        filter_selector,
-    ))
-    .parse(input)
-}
-
-fn filter_selector(input: &str) -> IResult<&str, Selector> {
-    map(preceded(pair(char('?'), s), logical_expr), Selector::Filter).parse(input)
-}
-
-fn slice_selector(input: &str) -> IResult<&str, Selector> {
-    map(
-        (
-            opt(terminated(index_selector, s)),
-            char(':'),
-            preceded(s, opt(terminated(index_selector, s))),
-            opt(preceded(pair(char(':'), s), index_selector)),
-        ),
-        |(start, _, end, step)| Selector::Slice { start, end, step },
-    )
-    .parse(input)
-}
-
-fn index_selector(input: &str) -> IResult<&str, i64> {
-    IntegerLiteral::new().parse(input)
-}
-
-fn logical_expr(input: &str) -> IResult<&str, LogicalExpr> {
-    logical_or_expr(input)
-}
-
-fn logical_or_expr(input: &str) -> IResult<&str, LogicalExpr> {
-    let (mut input, mut expr) = logical_and_expr(input)?;
-    loop {
-        match preceded((s, tag("||"), s), logical_and_expr).parse(input) {
-            Ok((next, rhs)) => {
-                expr = LogicalExpr::Or(Box::new(expr), Box::new(rhs));
-                input = next;
-            }
-            Err(_) => return Ok((input, expr)),
-        }
-    }
-}
-
-fn logical_and_expr(input: &str) -> IResult<&str, LogicalExpr> {
-    let (mut input, mut expr) = basic_expr(input)?;
-    loop {
-        match preceded((s, tag("&&"), s), basic_expr).parse(input) {
-            Ok((next, rhs)) => {
-                expr = LogicalExpr::And(Box::new(expr), Box::new(rhs));
-                input = next;
-            }
-            Err(_) => return Ok((input, expr)),
-        }
-    }
-}
-
-fn basic_expr(input: &str) -> IResult<&str, LogicalExpr> {
-    alt((paren_expr, comparison_expr, test_expr)).parse(input)
-}
-
-fn paren_expr(input: &str) -> IResult<&str, LogicalExpr> {
-    map(
-        pair(
-            opt(terminated(logical_not_op, s)),
-            delimited(char('('), delimited(s, logical_expr, s), char(')')),
-        ),
-        |(not, expr)| {
-            let expr = LogicalExpr::Paren(Box::new(expr));
-            if not.is_some() {
-                LogicalExpr::Not(Box::new(expr))
-            } else {
-                expr
-            }
-        },
-    )
-    .parse(input)
-}
-
-fn test_expr(input: &str) -> IResult<&str, LogicalExpr> {
-    map(
-        pair(
-            opt(terminated(logical_not_op, s)),
-            alt((
-                map(filter_query, TestExpr::Query),
-                map(function_expr, TestExpr::Function),
-            )),
-        ),
-        |(not, expr)| {
-            let expr = LogicalExpr::Test(expr);
-            if not.is_some() {
-                LogicalExpr::Not(Box::new(expr))
-            } else {
-                expr
-            }
-        },
-    )
-    .parse(input)
-}
-
-fn logical_not_op(input: &str) -> IResult<&str, char> {
-    char('!').parse(input)
-}
-
-fn comparison_expr(input: &str) -> IResult<&str, LogicalExpr> {
-    map(
-        (comparable, delimited(s, comparison_op, s), comparable),
-        |(left, op, right)| LogicalExpr::Comparison { left, op, right },
-    )
-    .parse(input)
-}
-
-fn comparable(input: &str) -> IResult<&str, Comparable> {
-    alt((
-        map(literal, Comparable::Literal),
-        map(singular_query, Comparable::SingularQuery),
-        map(function_expr, Comparable::Function),
-    ))
-    .parse(input)
-}
-
-fn comparison_op(input: &str) -> IResult<&str, ComparisonOp> {
-    alt((
-        value(ComparisonOp::Eq, tag("==")),
-        value(ComparisonOp::Ne, tag("!=")),
-        value(ComparisonOp::Le, tag("<=")),
-        value(ComparisonOp::Ge, tag(">=")),
-        value(ComparisonOp::Lt, tag("<")),
-        value(ComparisonOp::Gt, tag(">")),
-    ))
-    .parse(input)
-}
-
-fn singular_query(input: &str) -> IResult<&str, SingularQuery> {
-    alt((
-        map(pair(char('@'), singular_query_segments), |(_, segments)| {
-            SingularQuery {
-                root: QueryRoot::Current,
-                segments,
-            }
-        }),
-        map(pair(char('$'), singular_query_segments), |(_, segments)| {
-            SingularQuery {
-                root: QueryRoot::Root,
-                segments,
-            }
-        }),
-    ))
-    .parse(input)
-}
-
-fn singular_query_segments(input: &str) -> IResult<&str, Vec<SingularSegment>> {
-    many0(preceded(
-        s,
-        alt((
-            map(name_segment, SingularSegment::Name),
-            map(index_segment, SingularSegment::Index),
-        )),
-    ))
-    .parse(input)
-}
-
-fn name_segment(input: &str) -> IResult<&str, String> {
-    alt((
-        delimited(char('['), delimited(s, StringLiteral::new(), s), char(']')),
-        preceded(char('.'), member_name_shorthand),
-    ))
-    .parse(input)
-}
-
-fn index_segment(input: &str) -> IResult<&str, i64> {
-    delimited(char('['), delimited(s, index_selector, s), char(']')).parse(input)
-}
-
-fn literal(input: &str) -> IResult<&str, Literal> {
-    alt((
-        map(NumberLiteral::new(), Literal::Number),
-        map(StringLiteral::new(), Literal::String),
-        value(Literal::Bool(true), tag("true")),
-        value(Literal::Bool(false), tag("false")),
-        value(Literal::Null, tag("null")),
-    ))
-    .parse(input)
-}
-
-fn function_expr(input: &str) -> IResult<&str, FunctionExpr> {
-    map(
-        pair(
-            function_name,
-            delimited(
-                pair(char('('), s),
-                separated_list0(delimited(s, char(','), s), function_argument),
-                preceded(s, char(')')),
-            ),
-        ),
-        |(name, arguments)| FunctionExpr { name, arguments },
-    )
-    .parse(input)
-}
-
-fn function_argument(input: &str) -> IResult<&str, FunctionArgument> {
-    alt((
-        map(function_expr, FunctionArgument::Function),
-        map(logical_expr, FunctionArgument::LogicalExpr),
-        map(filter_query, FunctionArgument::Query),
-        map(literal, FunctionArgument::Literal),
-    ))
-    .parse(input)
-}
-
-fn function_name(input: &str) -> IResult<&str, String> {
-    map(
-        recognize(pair(
-            take_while1(|c: char| c.is_ascii_lowercase()),
-            take_while(|c: char| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_'),
-        )),
-        ToOwned::to_owned,
-    )
-    .parse(input)
-}
-
-fn member_name_shorthand(input: &str) -> IResult<&str, String> {
-    let (input, first) = take_char_if(input, is_name_first)?;
-    let (input, rest) = take_while(is_name_char).parse(input)?;
-    let mut name = String::from(first);
-    name.push_str(rest);
-    Ok((input, name))
-}
-
-fn s(input: &str) -> IResult<&str, &str> {
-    take_while(|c: char| matches!(c, ' ' | '\t' | '\r' | '\n')).parse(input)
-}
-
-fn take_char_if(input: &str, predicate: fn(char) -> bool) -> IResult<&str, char> {
-    let Some(ch) = input.chars().next() else {
-        return Err(Err::Error(nom::error::Error::new(input, ErrorKind::Char)));
-    };
-    if predicate(ch) {
-        Ok((&input[ch.len_utf8()..], ch))
-    } else {
-        Err(Err::Error(nom::error::Error::new(input, ErrorKind::Char)))
-    }
-}
-
-fn is_name_first(ch: char) -> bool {
-    ch.is_ascii_alphabetic() || ch == '_' || is_non_surrogate_non_ascii(ch)
-}
-
-fn is_name_char(ch: char) -> bool {
-    is_name_first(ch) || ch.is_ascii_digit()
-}
-
-fn is_non_surrogate_non_ascii(ch: char) -> bool {
-    matches!(ch as u32, 0x80..=0xD7FF | 0xE000..=0x10FFFF)
-}
+pub use parser::{JsonPath, ParseError, parse};
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+    use crate::json_path::eval::JsonPathMatcher;
+    use crate::json_path::parser::{LogicalExpr, Segment, Selector};
+    use nom::error::ErrorKind;
+    use serde_json::{Value, json};
+
+    fn matching_named_array_indices(root: &Value, path: &str, name: &str) -> Vec<bool> {
+        let paths = vec![path.parse::<JsonPath>().unwrap()];
+        let mut matcher = JsonPathMatcher::new(&paths);
+        let mut root_state = matcher.root_state(root);
+        let mut array_state = root_state.advance_name(name).unwrap();
+        let array_len = root.as_object().unwrap()[name].as_array().unwrap().len();
+        let mut matches = Vec::with_capacity(array_len);
+        for index in 0..array_len {
+            let state = array_state.advance_index(index).unwrap();
+            matches.push(state.is_match());
+            drop(state);
+        }
+        matches
+    }
+
+    fn matching_root_array_indices(root: &Value, path: &str) -> Vec<bool> {
+        let paths = vec![path.parse::<JsonPath>().unwrap()];
+        let mut matcher = JsonPathMatcher::new(&paths);
+        let mut root_state = matcher.root_state(root);
+        let array_len = root.as_array().unwrap().len();
+        let mut matches = Vec::with_capacity(array_len);
+        for index in 0..array_len {
+            let state = root_state.advance_index(index).unwrap();
+            matches.push(state.is_match());
+            drop(state);
+        }
+        matches
+    }
 
     #[test]
     fn test_parse() {
@@ -980,6 +202,230 @@ mod tests {
         drop(item_2_state);
         drop(items_state);
         assert!(root_state.advance_name("missing").is_none());
+    }
+
+    #[test]
+    fn json_path_matcher_does_not_leak_child_candidates_to_siblings() {
+        let root = json!({
+            "a": { "b": 1 },
+            "c": { "b": 2 }
+        });
+        let paths = vec!["$.a.b".parse::<JsonPath>().unwrap()];
+        let mut matcher = JsonPathMatcher::new(&paths);
+        let mut root_state = matcher.root_state(&root);
+
+        let mut a_state = root_state.advance_name("a").unwrap();
+        let b_state = a_state.advance_name("b").unwrap();
+        assert!(b_state.is_match());
+        drop(b_state);
+        drop(a_state);
+
+        let mut c_state = root_state.advance_name("c").unwrap();
+        let b_state = c_state.advance_name("b").unwrap();
+        assert!(!b_state.is_match());
+    }
+
+    #[test]
+    fn json_path_matcher_matches_descendant_child_suffixes() {
+        let root = json!({
+            "outer": {
+                "target": { "value": 1 }
+            }
+        });
+        let paths = vec!["$..target.value".parse::<JsonPath>().unwrap()];
+        let mut matcher = JsonPathMatcher::new(&paths);
+        let mut root_state = matcher.root_state(&root);
+        let mut outer_state = root_state.advance_name("outer").unwrap();
+        assert!(!outer_state.is_match());
+
+        let mut target_state = outer_state.advance_name("target").unwrap();
+        assert!(!target_state.is_match());
+
+        let value_state = target_state.advance_name("value").unwrap();
+        assert!(value_state.is_match());
+    }
+
+    #[test]
+    fn json_path_matcher_does_not_leak_descendant_candidates_to_siblings() {
+        let root = json!({
+            "a": {
+                "deep": { "target": 1 }
+            },
+            "b": {
+                "target": 2
+            }
+        });
+        let paths = vec!["$.a..target".parse::<JsonPath>().unwrap()];
+        let mut matcher = JsonPathMatcher::new(&paths);
+        let mut root_state = matcher.root_state(&root);
+
+        let mut a_state = root_state.advance_name("a").unwrap();
+        let mut deep_state = a_state.advance_name("deep").unwrap();
+        let target_state = deep_state.advance_name("target").unwrap();
+        assert!(target_state.is_match());
+        drop(target_state);
+        drop(deep_state);
+        drop(a_state);
+
+        let mut b_state = root_state.advance_name("b").unwrap();
+        let target_state = b_state.advance_name("target").unwrap();
+        assert!(!target_state.is_match());
+    }
+
+    #[test]
+    fn json_path_matcher_matches_nested_descendant_suffixes() {
+        let root = json!({
+            "container": {
+                "child": { "target": 1 }
+            },
+            "other": {
+                "target": 2
+            }
+        });
+        let paths = vec!["$..container..target".parse::<JsonPath>().unwrap()];
+        let mut matcher = JsonPathMatcher::new(&paths);
+        let mut root_state = matcher.root_state(&root);
+
+        let mut container_state = root_state.advance_name("container").unwrap();
+        assert!(!container_state.is_match());
+        let mut child_state = container_state.advance_name("child").unwrap();
+        let target_state = child_state.advance_name("target").unwrap();
+        assert!(target_state.is_match());
+        drop(target_state);
+        drop(child_state);
+        drop(container_state);
+
+        let mut other_state = root_state.advance_name("other").unwrap();
+        let target_state = other_state.advance_name("target").unwrap();
+        assert!(!target_state.is_match());
+    }
+
+    #[test]
+    fn json_path_matcher_matches_filter_selectors() {
+        let root = json!({
+            "x": "k",
+            "a": [
+                { "b": "k", "n": 1 },
+                { "b": "m", "n": 2 },
+                { "n": 3 },
+                4
+            ]
+        });
+
+        assert_eq!(
+            matching_named_array_indices(&root, "$.a[?@.b]", "a"),
+            vec![true, true, false, false]
+        );
+        assert_eq!(
+            matching_named_array_indices(&root, "$.a[?@.b == $.x]", "a"),
+            vec![true, false, false, false]
+        );
+        assert_eq!(
+            matching_named_array_indices(&root, "$.a[?@.n >= 2]", "a"),
+            vec![false, true, true, false]
+        );
+        assert_eq!(
+            matching_named_array_indices(&root, "$.a[?@.n < 2 || @.b == \"m\"]", "a"),
+            vec![true, true, false, false]
+        );
+        assert_eq!(
+            matching_named_array_indices(&root, "$.a[?@ < 5]", "a"),
+            vec![false, false, false, true]
+        );
+        assert_eq!(
+            matching_named_array_indices(&root, "$.a[?@.missing == $.missing]", "a"),
+            vec![true, true, true, true]
+        );
+    }
+
+    #[test]
+    fn json_path_matcher_matches_filter_functions() {
+        let root = json!([
+            { "tags": ["a"] },
+            { "tags": ["a", "b"] },
+            { "tags": [] },
+            { "color": "red" },
+            { "nested": { "color": "red" } },
+            { "nested": { "color": "blue" } }
+        ]);
+
+        assert_eq!(
+            matching_root_array_indices(&root, "$[?length(@.tags) < 2]"),
+            vec![true, false, true, false, false, false]
+        );
+        assert_eq!(
+            matching_root_array_indices(&root, "$[?count(@.tags[*]) == 1]"),
+            vec![true, false, false, false, false, false]
+        );
+        assert_eq!(
+            matching_root_array_indices(&root, "$[?value(@..color) == \"red\"]"),
+            vec![false, false, false, true, true, false]
+        );
+    }
+
+    #[test]
+    fn json_path_matcher_matches_regex_functions() {
+        let root = json!({
+            "a": [
+                { "b": "j" },
+                { "b": "kilo" },
+                { "b": "m" },
+                { "b": 1 },
+                {}
+            ]
+        });
+
+        assert_eq!(
+            matching_named_array_indices(&root, "$.a[?match(@.b, \"[jk]\")]", "a"),
+            vec![true, false, false, false, false]
+        );
+        assert_eq!(
+            matching_named_array_indices(&root, "$.a[?search(@.b, \"[jk]\")]", "a"),
+            vec![true, true, false, false, false]
+        );
+        assert_eq!(
+            matching_named_array_indices(&root, "$.a[?match(@.b, \"[jk]\") == true]", "a"),
+            vec![true, false, false, false, false]
+        );
+    }
+
+    #[test]
+    fn json_path_matcher_matches_object_filter_selectors() {
+        let root = json!({
+            "o": {
+                "one": 1,
+                "two": 2,
+                "four": 4,
+                "obj": { "u": true },
+                "none": {}
+            }
+        });
+        let paths = vec![
+            "$.o[?@ > 1 && @ < 4]".parse::<JsonPath>().unwrap(),
+            "$.o[?@.u || @.x]".parse::<JsonPath>().unwrap(),
+        ];
+        let mut matcher = JsonPathMatcher::new(&paths);
+        let mut root_state = matcher.root_state(&root);
+        let mut object_state = root_state.advance_name("o").unwrap();
+
+        let one_state = object_state.advance_name("one").unwrap();
+        assert!(!one_state.is_match());
+        drop(one_state);
+
+        let two_state = object_state.advance_name("two").unwrap();
+        assert!(two_state.is_match());
+        drop(two_state);
+
+        let four_state = object_state.advance_name("four").unwrap();
+        assert!(!four_state.is_match());
+        drop(four_state);
+
+        let obj_state = object_state.advance_name("obj").unwrap();
+        assert!(obj_state.is_match());
+        drop(obj_state);
+
+        let none_state = object_state.advance_name("none").unwrap();
+        assert!(!none_state.is_match());
     }
 
     #[test]

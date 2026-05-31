@@ -1192,10 +1192,12 @@ dependencies = [
  "askama",
  "mime",
  "nom",
+ "regex-lite",
  "semdiff-core",
  "semdiff-output",
  "serde_json",
  "similar",
+ "smallvec",
  "thiserror",
 ]
 

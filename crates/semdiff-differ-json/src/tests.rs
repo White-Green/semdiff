@@ -194,6 +194,56 @@ fn json_diff_treats_ignored_array_index_as_equal() {
 }
 
 #[test]
+fn json_diff_treats_filter_ignored_array_member_as_equal() {
+    let expected = json!({
+        "ignore_id": 1,
+        "items": [
+            { "id": 1, "value": 10 },
+            { "id": 2, "value": 20 }
+        ]
+    });
+    let actual = json!({
+        "ignore_id": 1,
+        "items": [
+            { "id": 1, "value": 99 },
+            { "id": 2, "value": 20 }
+        ]
+    });
+    let ignore_paths = vec!["$.items[?@.id == $.ignore_id].value".parse::<JsonPath>().unwrap()];
+
+    let diff = json_diff(&expected, &actual, &ignore_paths);
+
+    assert!(diff.iter().all(JsonDiffLine::is_equal_for_result));
+    assert!(diff.iter().any(JsonDiffLine::is_ignored));
+}
+
+#[test]
+fn json_diff_treats_regex_filter_ignored_array_member_as_equal() {
+    let expected = json!({
+        "items": [
+            { "timezone": "Europe/London", "value": 10 },
+            { "timezone": "Asia/Tokyo", "value": 20 }
+        ]
+    });
+    let actual = json!({
+        "items": [
+            { "timezone": "Europe/London", "value": 99 },
+            { "timezone": "Asia/Tokyo", "value": 20 }
+        ]
+    });
+    let ignore_paths = vec![
+        "$.items[?search(@.timezone, 'Europe/')].value"
+            .parse::<JsonPath>()
+            .unwrap(),
+    ];
+
+    let diff = json_diff(&expected, &actual, &ignore_paths);
+
+    assert!(diff.iter().all(JsonDiffLine::is_equal_for_result));
+    assert!(diff.iter().any(JsonDiffLine::is_ignored));
+}
+
+#[test]
 fn json_diff_does_not_pair_negative_index_ignore_with_non_ignored_array_element() {
     let expected = json!([1, 100, 2]);
     let actual = json!([1, 3, 200, 2]);

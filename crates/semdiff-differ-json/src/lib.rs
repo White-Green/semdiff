@@ -1,4 +1,5 @@
-use crate::json_path::{JsonPath, JsonPathMatchState, JsonPathMatcher};
+use crate::json_path::JsonPath;
+use crate::json_path::eval::{JsonPathMatchState, JsonPathMatcher};
 use mime::Mime;
 use semdiff_core::fs::FileLeaf;
 use semdiff_core::{Diff, DiffCalculator, MayUnsupported};
@@ -8,8 +9,8 @@ use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::fmt::Display;
 use std::{convert, fmt, mem};
-pub mod json_path;
 
+pub mod json_path;
 pub mod report_html;
 pub mod report_json;
 pub mod report_summary;
@@ -576,11 +577,11 @@ impl JsonDiffLineWriter<'_> {
 }
 
 fn json_diff(expected: &Value, actual: &Value, ignore_paths: &[JsonPath]) -> JsonDiffLines {
-    fn json_array_diff<'stack, 'value>(
+    fn json_array_diff<'stack, 'path, 'value>(
         expected: &'value [Value],
         actual: &'value [Value],
-        expected_state: &mut JsonPathMatchState<'stack, 'value, &'value Value>,
-        actual_state: &mut JsonPathMatchState<'stack, 'value, &'value Value>,
+        expected_state: &mut JsonPathMatchState<'stack, 'path, &'value Value>,
+        actual_state: &mut JsonPathMatchState<'stack, 'path, &'value Value>,
         writer: &mut JsonDiffLineWriter<'_>,
     ) {
         let mut hook = ArrayDiffHook {
@@ -599,15 +600,15 @@ fn json_diff(expected: &Value, actual: &Value, ignore_paths: &[JsonPath]) -> Jso
         )
         .unwrap();
 
-        struct ArrayDiffHook<'hook, 'value, 'stack, 'lines> {
+        struct ArrayDiffHook<'hook, 'value, 'stack, 'path, 'lines> {
             expected: &'value [Value],
             actual: &'value [Value],
-            expected_state: &'hook mut JsonPathMatchState<'stack, 'value, &'value Value>,
-            actual_state: &'hook mut JsonPathMatchState<'stack, 'value, &'value Value>,
+            expected_state: &'hook mut JsonPathMatchState<'stack, 'path, &'value Value>,
+            actual_state: &'hook mut JsonPathMatchState<'stack, 'path, &'value Value>,
             writer: &'hook mut JsonDiffLineWriter<'lines>,
         }
 
-        impl DiffHook for ArrayDiffHook<'_, '_, '_, '_> {
+        impl DiffHook for ArrayDiffHook<'_, '_, '_, '_, '_> {
             type Error = convert::Infallible;
 
             fn equal(&mut self, old_index: usize, new_index: usize, len: usize) -> Result<(), Self::Error> {
@@ -830,11 +831,11 @@ fn json_diff(expected: &Value, actual: &Value, ignore_paths: &[JsonPath]) -> Jso
             }
         }
     }
-    fn json_object_diff<'stack, 'value>(
+    fn json_object_diff<'stack, 'path, 'value>(
         expected: &'value serde_json::Map<String, Value>,
         actual: &'value serde_json::Map<String, Value>,
-        expected_state: &mut JsonPathMatchState<'stack, 'value, &'value Value>,
-        actual_state: &mut JsonPathMatchState<'stack, 'value, &'value Value>,
+        expected_state: &mut JsonPathMatchState<'stack, 'path, &'value Value>,
+        actual_state: &mut JsonPathMatchState<'stack, 'path, &'value Value>,
         writer: &mut JsonDiffLineWriter<'_>,
     ) {
         let expected_keys = expected.keys().collect::<Vec<_>>();
@@ -857,17 +858,17 @@ fn json_diff(expected: &Value, actual: &Value, ignore_paths: &[JsonPath]) -> Jso
         )
         .unwrap();
 
-        struct ObjectDiffHook<'hook, 'value, 'stack, 'lines> {
+        struct ObjectDiffHook<'hook, 'value, 'stack, 'path, 'lines> {
             expected: &'value serde_json::Map<String, Value>,
             actual: &'value serde_json::Map<String, Value>,
             expected_keys: &'hook [&'value String],
             actual_keys: &'hook [&'value String],
-            expected_state: &'hook mut JsonPathMatchState<'stack, 'value, &'value Value>,
-            actual_state: &'hook mut JsonPathMatchState<'stack, 'value, &'value Value>,
+            expected_state: &'hook mut JsonPathMatchState<'stack, 'path, &'value Value>,
+            actual_state: &'hook mut JsonPathMatchState<'stack, 'path, &'value Value>,
             writer: &'hook mut JsonDiffLineWriter<'lines>,
         }
 
-        impl DiffHook for ObjectDiffHook<'_, '_, '_, '_> {
+        impl DiffHook for ObjectDiffHook<'_, '_, '_, '_, '_> {
             type Error = convert::Infallible;
 
             fn equal(&mut self, old_index: usize, new_index: usize, len: usize) -> Result<(), Self::Error> {
