@@ -43,7 +43,7 @@ mime = { default-features = false, version = "0.3.17" }
 mime_guess = { default-features = false, features = [
   "rev-mappings",
 ], version = "2.0.5" }
-nom = "8.0.0"
+nom = { default-features = false, version = "8.0.0" }
 rayon = { default-features = false, version = "1.12.0" }
 regex-lite = { default-features = false, features = [
   "std",

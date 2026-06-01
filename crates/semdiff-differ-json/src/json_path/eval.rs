@@ -1,4 +1,4 @@
-use crate::json_path::number_literal::Number;
+use crate::json_path::parser::number_literal::Number;
 use crate::json_path::parser::{
     Comparable, ComparisonOp, FunctionArgument, FunctionExpr, JsonPath, Literal, LogicalExpr, Query, QueryRoot,
     Segment, Selector, SingularQuery, SingularSegment, TestExpr,

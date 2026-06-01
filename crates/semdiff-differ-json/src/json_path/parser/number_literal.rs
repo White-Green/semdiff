@@ -81,7 +81,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::json_path::number_literal::{Number, NumberLiteral};
     use nom::error::Error;
 
     #[test]

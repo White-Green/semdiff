@@ -1,6 +1,6 @@
-use super::integer_literal::IntegerLiteral;
-use super::number_literal::{Number, NumberLiteral};
-use super::string_literal::StringLiteral;
+use crate::json_path::parser::integer_literal::IntegerLiteral;
+use crate::json_path::parser::number_literal::{Number, NumberLiteral};
+use crate::json_path::parser::string_literal::StringLiteral;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while, take_while1};
 use nom::character::complete::char;
@@ -11,6 +11,13 @@ use nom::sequence::{delimited, pair, preceded, terminated};
 use nom::{Err, IResult, Parser};
 use std::fmt;
 use std::str::FromStr;
+
+pub(crate) mod integer_literal;
+pub(crate) mod number_literal;
+pub(crate) mod string_literal;
+
+#[cfg(test)]
+mod tests;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct JsonPath {
