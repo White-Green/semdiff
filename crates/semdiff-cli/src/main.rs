@@ -36,6 +36,9 @@ struct Cli {
     /// Ignore object key order when comparing JSON.
     #[arg(long)]
     json_ignore_object_key_order: bool,
+    /// Ignore JSON values matching the JSONPath expression (RFC 9535) when comparing JSON.
+    #[arg(long, value_name = "JSONPATH")]
+    json_ignore_path: Vec<semdiff_differ_json::json_path::JsonPath>,
     /// Max OkLab+alpha distance to treat two image pixels as equal.
     #[arg(long, default_value_t = 0.0)]
     image_max_distance: f32,
@@ -56,9 +59,10 @@ struct Cli {
     audio_spectrogram_diff_rate_tolerance: f64,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct DiffConfig {
     json_ignore_object_key_order: bool,
+    json_ignore_path: Vec<semdiff_differ_json::json_path::JsonPath>,
     image_max_distance: f32,
     image_max_diff_ratio: f32,
     audio_shift_tolerance_seconds: f32,
@@ -71,6 +75,7 @@ impl DiffConfig {
     fn from_cli(cli: &Cli) -> Self {
         Self {
             json_ignore_object_key_order: cli.json_ignore_object_key_order,
+            json_ignore_path: cli.json_ignore_path.clone(),
             image_max_distance: cli.image_max_distance,
             image_max_diff_ratio: cli.image_max_diff_ratio,
             audio_shift_tolerance_seconds: cli.audio_shift_tolerance_seconds,
@@ -164,7 +169,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn build_diff_calculators(config: &DiffConfig) -> DiffCalculators {
     DiffCalculators {
-        json: semdiff_differ_json::JsonDiffCalculator::new(config.json_ignore_object_key_order),
+        json: semdiff_differ_json::JsonDiffCalculator::new(
+            config.json_ignore_object_key_order,
+            config.json_ignore_path.clone(),
+        ),
         text: semdiff_differ_text::TextDiffCalculator,
         audio: semdiff_differ_audio::AudioDiffCalculator::new(
             config.audio_shift_tolerance_seconds,

@@ -1191,10 +1191,13 @@ version = "0.3.0"
 dependencies = [
  "askama",
  "mime",
+ "nom",
+ "regex-lite",
  "semdiff-core",
  "semdiff-output",
  "serde_json",
  "similar",
+ "smallvec",
  "thiserror",
 ]
 

@@ -43,7 +43,12 @@ mime = { default-features = false, version = "0.3.17" }
 mime_guess = { default-features = false, features = [
   "rev-mappings",
 ], version = "2.0.5" }
+nom = { default-features = false, version = "8.0.0" }
 rayon = { default-features = false, version = "1.12.0" }
+regex-lite = { default-features = false, features = [
+  "std",
+  "string",
+], version = "0.1.9" }
 rustfft = { default-features = false, features = [
   "avx",
   "neon",
@@ -60,6 +65,7 @@ similar = { default-features = false, features = [
   "bytes",
   "text",
 ], version = "3.1.0" }
+smallvec = { default-features = false, version = "1.15.1" }
 symphonia = { default-features = true, version = "0.6.0" }
 thiserror = { default-features = false, version = "2.0.18" }
 xxhash-rust = { default-features = false, features = [

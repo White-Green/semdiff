@@ -66,6 +66,8 @@
         <pre>{% for line in (lines.iter().skip_while(Self::is_equal).take(10)) %}{% match line.tag() %}{%
             when ChangeTag::Unchanged
             %}<span class="line same"><span class="prefix">{{ "  " }}</span><span class="content">{{ line.display_expected() }}</span></span>{%
+            when ChangeTag::Ignored
+            %}<span class="line same"><span class="prefix">{{ "  " }}</span><span class="content">{{ line.preview_text() }}</span></span>{%
             when ChangeTag::Deleted
             %}<span class="line deleted"><span class="prefix">{{ "- " }}</span><span class="content">{{ line.display_expected() }}</span></span>{%
             when ChangeTag::Added

@@ -14,6 +14,9 @@ semdiff-output = { workspace = true }
 
 askama = { workspace = true }
 mime = { workspace = true }
+nom = { workspace = true }
+regex-lite = { workspace = true }
 serde_json = { workspace = true }
 similar = { workspace = true }
+smallvec = { workspace = true }
 thiserror = { workspace = true }
