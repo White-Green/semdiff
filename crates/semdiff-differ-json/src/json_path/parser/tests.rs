@@ -1,11 +1,10 @@
-use crate::json_path::parser::parse;
+use crate::json_path::JsonPath;
 use crate::json_path::eval::JsonPathMatcher;
 use crate::json_path::parser::number_literal::Number;
 use crate::json_path::parser::{
     Comparable, ComparisonOp, FunctionArgument, FunctionExpr, Literal, LogicalExpr, Query, QueryRoot, Segment,
-    Selector, SingularQuery, SingularSegment, TestExpr,
+    Selector, SingularQuery, SingularSegment, TestExpr, parse,
 };
-use crate::json_path::JsonPath;
 use nom::error::ErrorKind;
 use serde_json::{Value, json};
 
