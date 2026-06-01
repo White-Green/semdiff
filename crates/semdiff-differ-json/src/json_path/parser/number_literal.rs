@@ -184,18 +184,6 @@ mod tests {
             NumberLiteral::<Error<&str>>::new().parse("1E2"),
             Ok(("E2", Number::Int(1)))
         );
-        // assert_eq!(
-        //     NumberLiteral::<Error<&str>>::new().parse("1."),
-        //     Ok((".", Number::Int(1)))
-        // );
-        // assert_eq!(
-        //     NumberLiteral::<Error<&str>>::new().parse("1e"),
-        //     Ok(("e", Number::Int(1)))
-        // );
-        // assert_eq!(
-        //     NumberLiteral::<Error<&str>>::new().parse("1e+"),
-        //     Ok(("e+", Number::Int(1)))
-        // );
         assert_eq!(
             NumberLiteral::<Error<&str>>::new().parse("01"),
             Ok(("1", Number::Int(0)))
