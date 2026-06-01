@@ -144,20 +144,17 @@ impl<'a> JsonPathObject<'a> for SerdeJsonPathObject<'a> {
 
 pub(crate) struct JsonPathMatcher<'a> {
     paths: &'a [JsonPath],
-    descendant_active: Vec<ActiveSegments<'a>>,
+    descendant_active: Vec<&'a [Segment]>,
 }
 
 pub(crate) struct JsonPathMatchState<'state, 'path, V> {
     root: V,
     current: V,
-    descendant_active: &'state mut Vec<ActiveSegments<'path>>,
+    descendant_active: &'state mut Vec<&'path [Segment]>,
     descendant_start: usize,
-    child_active: ActiveSegmentsVec<'path>,
+    child_active: SmallVec<[&'path [Segment]; 8]>,
     matched: bool,
 }
-
-type ActiveSegments<'path> = &'path [Segment];
-type ActiveSegmentsVec<'path> = SmallVec<[ActiveSegments<'path>; 8]>;
 
 impl<'state, 'path, 'value, V> JsonPathMatchState<'state, 'path, V>
 where
@@ -188,8 +185,8 @@ where
         let root = self.root;
         let parent_current = self.current;
         let descendant_start = self.descendant_active.len();
-        let mut child_active = ActiveSegmentsVec::new();
-        let mut descendant_active = ActiveSegmentsVec::new();
+        let mut child_active = SmallVec::new();
+        let mut descendant_active = SmallVec::new();
         let mut matched = false;
         for &segments in &self.child_active {
             let Some(Segment::Child(selectors)) = segments.first() else {
@@ -806,11 +803,11 @@ impl<'a> JsonPathMatcher<'a> {
             current: root,
             descendant_active: &mut self.descendant_active,
             descendant_start: 0,
-            child_active: ActiveSegmentsVec::new(),
+            child_active: SmallVec::new(),
             matched: false,
         };
         for path in self.paths {
-            let mut descendant_active = ActiveSegmentsVec::new();
+            let mut descendant_active = SmallVec::new();
             activate_segments(
                 path.segments.as_slice(),
                 &mut state.child_active,
@@ -828,20 +825,22 @@ impl<'a> JsonPathMatcher<'a> {
 }
 
 fn activate_segments<'path>(
-    segments: ActiveSegments<'path>,
-    child_active: &mut ActiveSegmentsVec<'path>,
-    descendant_active: &mut ActiveSegmentsVec<'path>,
+    segments: &'path [Segment],
+    child_active: &mut SmallVec<[&'path [Segment]; 8]>,
+    descendant_active: &mut SmallVec<[&'path [Segment]; 8]>,
     matched: &mut bool,
 ) {
     match segments.first() {
         None => *matched = true,
-        Some(Segment::Child(_)) => push_unique(child_active, segments),
-        Some(Segment::Descendant(_)) => push_unique(descendant_active, segments),
-    }
-}
-
-fn push_unique<'path>(values: &mut ActiveSegmentsVec<'path>, segments: ActiveSegments<'path>) {
-    if !values.contains(&segments) {
-        values.push(segments);
+        Some(Segment::Child(_)) => {
+            if !child_active.contains(&segments) {
+                child_active.push(segments);
+            }
+        }
+        Some(Segment::Descendant(_)) => {
+            if !descendant_active.contains(&segments) {
+                descendant_active.push(segments);
+            }
+        }
     }
 }
