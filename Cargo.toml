@@ -60,11 +60,11 @@ serde = { default-features = false, features = [
 ], version = "1.0.228" }
 serde_json = { default-features = false, features = [
   "preserve_order",
-], version = "1.0.149" }
+], version = "1.0.150" }
 similar = { default-features = false, features = [
   "bytes",
   "text",
-], version = "3.1.0" }
+], version = "3.1.1" }
 smallvec = { default-features = false, version = "1.15.1" }
 symphonia = { default-features = true, version = "0.6.0" }
 thiserror = { default-features = false, version = "2.0.18" }
