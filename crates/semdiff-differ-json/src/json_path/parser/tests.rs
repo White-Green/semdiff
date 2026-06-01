@@ -1,10 +1,11 @@
+use crate::json_path::parser::parse;
 use crate::json_path::eval::JsonPathMatcher;
 use crate::json_path::parser::number_literal::Number;
 use crate::json_path::parser::{
     Comparable, ComparisonOp, FunctionArgument, FunctionExpr, Literal, LogicalExpr, Query, QueryRoot, Segment,
     Selector, SingularQuery, SingularSegment, TestExpr,
 };
-use crate::json_path::{JsonPath, parse};
+use crate::json_path::JsonPath;
 use nom::error::ErrorKind;
 use serde_json::{Value, json};
 
@@ -38,7 +39,7 @@ fn matching_root_array_indices(root: &Value, path: &str) -> Vec<bool> {
 }
 
 fn assert_parse(input: &str, segments: Vec<Segment>) {
-    assert_eq!(parse(input).unwrap(), JsonPath { segments });
+    assert_eq!(input.parse::<JsonPath>().unwrap(), JsonPath { segments });
 }
 
 fn child(selector: Selector) -> Segment {
