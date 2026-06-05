@@ -1178,6 +1178,7 @@ dependencies = [
  "askama",
  "color",
  "image",
+ "memmap2",
  "mime",
  "semdiff-core",
  "semdiff-output",

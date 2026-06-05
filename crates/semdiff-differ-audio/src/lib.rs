@@ -526,7 +526,7 @@ fn align_samples(
                 .sum::<f32>();
             (shift, score_sum)
         })
-        .min_by(|&(_, score1), &(_, score2)| score1.partial_cmp(&score2).unwrap())
+        .max_by(|&(_, score1), &(_, score2)| score1.partial_cmp(&score2).unwrap())
         .map_or(0, |(shift, _)| shift);
 
     for (expected, actual) in expected.iter_mut().zip(actual.iter_mut()) {
