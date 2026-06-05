@@ -514,20 +514,34 @@ fn align_samples(
     max_shift_samples: i32,
 ) -> (Vec<Vec<f32>>, Vec<Vec<f32>>, i32) {
     assert_eq!(expected.len(), actual.len());
+    let max_shift_samples = max_shift_samples.max(0);
+    let shift_count = max_shift_samples as usize * 2 + 1;
+    let mut shift_scores = vec![0.0f32; shift_count];
+    for (expected_channel, actual_channel) in expected.iter().zip(actual.iter()) {
+        let dot_products = cross_correlation_dot_products(expected_channel, actual_channel);
+        let expected_power = cumulative_power(expected_channel);
+        let actual_power = cumulative_power(actual_channel);
+        for (index, shift) in (-max_shift_samples..=max_shift_samples).enumerate() {
+            let (expected_range, actual_range) = overlap_range(expected_channel.len(), actual_channel.len(), shift);
+            let dot_product = dot_product_for_shift(&dot_products, actual_channel.len(), shift);
+            let expected_power = range_power(&expected_power, expected_range);
+            let actual_power = range_power(&actual_power, actual_range);
+            shift_scores[index] += normalized_correlation_from_parts(dot_product, expected_power, actual_power);
+        }
+    }
+
     let best_shift = (-max_shift_samples..=max_shift_samples)
-        .map(|shift| {
-            let score_sum = expected
-                .iter()
-                .zip(actual.iter())
-                .map(|(expected_channel, actual_channel)| {
-                    let (expected_slice, actual_slice) = overlap_slices(expected_channel, actual_channel, shift);
-                    normalized_correlation(expected_slice, actual_slice)
-                })
-                .sum::<f32>();
-            (shift, score_sum)
+        .zip(shift_scores)
+        .fold((0i32, f32::NEG_INFINITY), |(best_shift, best_score), (shift, score)| {
+            let better_score = score > best_score + f32::EPSILON;
+            let same_score_nearer_zero = (score - best_score).abs() <= f32::EPSILON && shift.abs() < best_shift.abs();
+            if better_score || same_score_nearer_zero {
+                (shift, score)
+            } else {
+                (best_shift, best_score)
+            }
         })
-        .max_by(|&(_, score1), &(_, score2)| score1.partial_cmp(&score2).unwrap())
-        .map_or(0, |(shift, _)| shift);
+        .0;
 
     for (expected, actual) in expected.iter_mut().zip(actual.iter_mut()) {
         let (expected_range, actual_range) = overlap_range(expected.len(), actual.len(), best_shift);
@@ -536,6 +550,59 @@ fn align_samples(
     }
 
     (expected, actual, best_shift)
+}
+
+fn cross_correlation_dot_products(expected: &[f32], actual: &[f32]) -> Vec<f32> {
+    if expected.is_empty() || actual.is_empty() {
+        return Vec::new();
+    }
+    let convolution_len = expected.len() + actual.len() - 1;
+    let fft_len = convolution_len.next_power_of_two();
+    let mut expected_buffer = vec![Complex::zero(); fft_len];
+    let mut actual_buffer = vec![Complex::zero(); fft_len];
+    for (&sample, slot) in expected.iter().zip(expected_buffer.iter_mut()) {
+        slot.re = sample;
+    }
+    for (&sample, slot) in actual.iter().rev().zip(actual_buffer.iter_mut()) {
+        slot.re = sample;
+    }
+
+    let mut planner = FftPlanner::<f32>::new();
+    let fft = planner.plan_fft_forward(fft_len);
+    fft.process(&mut expected_buffer);
+    fft.process(&mut actual_buffer);
+    for (expected, actual) in expected_buffer.iter_mut().zip(actual_buffer) {
+        *expected *= actual;
+    }
+    let ifft = planner.plan_fft_inverse(fft_len);
+    ifft.process(&mut expected_buffer);
+
+    let scale = 1.0 / fft_len as f32;
+    expected_buffer
+        .into_iter()
+        .take(convolution_len)
+        .map(|value| value.re * scale)
+        .collect()
+}
+
+fn cumulative_power(samples: &[f32]) -> Vec<f32> {
+    let mut powers = Vec::with_capacity(samples.len() + 1);
+    powers.push(0.0);
+    let mut sum = 0.0;
+    for sample in samples {
+        sum += sample * sample;
+        powers.push(sum);
+    }
+    powers
+}
+
+fn range_power(cumulative_power: &[f32], range: Range<usize>) -> f32 {
+    cumulative_power[range.end] - cumulative_power[range.start]
+}
+
+fn dot_product_for_shift(dot_products: &[f32], actual_len: usize, shift: i32) -> f32 {
+    let index = actual_len as i64 - 1 - shift as i64;
+    dot_products.get(index as usize).copied().unwrap_or(0.0)
 }
 
 fn summarize_channel_metrics(expected: &[Vec<f32>], actual: &[Vec<f32>]) -> f32 {
@@ -566,31 +633,17 @@ fn render_waveforms(samples: &[Vec<f32>], stat: &AudioStat, sample_rate: u32) ->
 
 fn overlap_range(expected_len: usize, actual_len: usize, shift: i32) -> (Range<usize>, Range<usize>) {
     if shift >= 0 {
-        let shift = shift as usize;
-        let len = expected_len.min(actual_len.saturating_sub(shift));
-        (0..len, shift..shift + len)
+        let actual_start = (shift as usize).min(actual_len);
+        let len = expected_len.min(actual_len.saturating_sub(actual_start));
+        (0..len, actual_start..actual_start + len)
     } else {
-        let shift = (-shift) as usize;
-        let len = actual_len.min(expected_len.saturating_sub(shift));
-        (shift..shift + len, 0..len)
+        let expected_start = ((-shift) as usize).min(expected_len);
+        let len = actual_len.min(expected_len.saturating_sub(expected_start));
+        (expected_start..expected_start + len, 0..len)
     }
 }
 
-fn overlap_slices<'a>(expected: &'a [f32], actual: &'a [f32], shift: i32) -> (&'a [f32], &'a [f32]) {
-    let (expected_range, actual_range) = overlap_range(expected.len(), actual.len(), shift);
-    (&expected[expected_range], &actual[actual_range])
-}
-
-fn normalized_correlation(expected: &[f32], actual: &[f32]) -> f32 {
-    assert_eq!(expected.len(), actual.len());
-    let mut dot = 0.0f32;
-    let mut expected_power = 0.0f32;
-    let mut actual_power = 0.0f32;
-    for (&e, &a) in expected.iter().zip(actual.iter()) {
-        dot += e * a;
-        expected_power += e * e;
-        actual_power += a * a;
-    }
+fn normalized_correlation_from_parts(dot: f32, expected_power: f32, actual_power: f32) -> f32 {
     let denom = (expected_power.sqrt() * actual_power.sqrt()).max(LOG_EPSILON);
     dot / denom
 }

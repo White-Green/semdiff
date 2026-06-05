@@ -40,6 +40,19 @@ fn diff_decoded_returns_incomparable_on_mismatched_format() {
 }
 
 #[test]
+fn cross_correlation_dot_products_match_direct_shift_dot_products() {
+    let expected = [1.0, 2.0, -1.0];
+    let actual = [0.5, -3.0, 4.0, 2.0];
+    let dot_products = cross_correlation_dot_products(&expected, &actual);
+
+    for shift in -4..=4 {
+        let direct = direct_dot_product(&expected, &actual, shift);
+        let fft = dot_product_for_shift(&dot_products, actual.len(), shift);
+        assert!((direct - fft).abs() < 1e-5, "shift {shift}: direct={direct}, fft={fft}");
+    }
+}
+
+#[test]
 fn shift_tolerance_option_can_align_offset_audio() {
     let mut expected_samples = vec![0.0; 32];
     expected_samples[10] = 1.0;
@@ -110,6 +123,15 @@ fn mono_decoded(samples: Vec<f32>) -> AudioDecoded {
         samples: vec![samples],
         spectrograms: vec![Vec::new()],
     }
+}
+
+fn direct_dot_product(expected: &[f32], actual: &[f32], shift: i32) -> f32 {
+    let (expected_range, actual_range) = overlap_range(expected.len(), actual.len(), shift);
+    expected[expected_range]
+        .iter()
+        .zip(actual[actual_range].iter())
+        .map(|(expected, actual)| expected * actual)
+        .sum()
 }
 
 fn expect_equal(status: &AudioDiffStatus) -> &AudioDiffDetail {
