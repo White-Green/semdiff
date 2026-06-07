@@ -205,14 +205,6 @@ fn image_format(mime: &Mime) -> Option<ImageFormat> {
     if mime.type_() != mime::IMAGE {
         return None;
     }
-    let format = match mime.subtype().as_str() {
-        "png" => ImageFormat::Png,
-        "bmp" => ImageFormat::Bmp,
-        "gif" => ImageFormat::Gif,
-        "jpeg" => ImageFormat::Jpeg,
-        "webp" => ImageFormat::WebP,
-        "avif" => ImageFormat::Avif,
-        _ => return None,
-    };
-    Some(format)
+    let format = ImageFormat::from_mime_type(mime.essence_str())?;
+    format.reading_enabled().then_some(format)
 }

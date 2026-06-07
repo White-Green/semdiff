@@ -466,13 +466,16 @@ pub fn audio_extension(kind: &Mime) -> Option<&'static str> {
     match kind.essence_str() {
         "audio/mpeg" => Some("mp3"),
         "audio/wav" | "audio/x-wav" => Some("wav"),
-        "audio/flac" => Some("flac"),
+        "audio/flac" | "audio/x-flac" => Some("flac"),
+        "audio/aiff" | "audio/x-aiff" => Some("aiff"),
         "audio/ogg" | "application/ogg" => Some("ogg"),
         "audio/opus" => Some("opus"),
-        "audio/webm" => Some("webm"),
+        "audio/webm" | "video/webm" => Some("webm"),
+        "video/x-matroska" => Some("mkv"),
         "audio/aac" => Some("aac"),
-        "audio/mp4" | "video/mp4" => Some("m4a"),
-        "audio/x-m4a" => Some("m4a"),
+        "audio/mp4" | "audio/m4a" | "audio/x-m4a" => Some("m4a"),
+        "video/mp4" => Some("mp4"),
+        "video/quicktime" => Some("mov"),
         _ => mime_guess::get_mime_extensions(kind).and_then(|exts| exts.first().copied()),
     }
 }
