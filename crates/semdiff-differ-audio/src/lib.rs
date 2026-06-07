@@ -6,12 +6,13 @@ use rustfft::num_traits::Zero;
 use rustfft::{Fft, FftPlanner};
 use semdiff_core::fs::FileLeaf;
 use semdiff_core::{Diff, DiffCalculator, MayUnsupported};
+use std::cell::RefCell;
 use std::f32::consts::PI;
 use std::fmt::{Debug, Formatter};
 use std::io::Cursor;
 use std::ops::Range;
 use std::sync::{Arc, LazyLock};
-use std::{convert, iter};
+use std::{convert, iter, mem};
 use symphonia::core::audio::AudioSpec;
 use symphonia::core::codecs::audio::AudioDecoderOptions;
 use symphonia::core::errors::Error as SymphoniaError;
@@ -214,7 +215,7 @@ impl AudioDiffCalculator {
         }
 
         let sample_rate = expected.sample_rate;
-        let max_shift_samples = (self.shift_tolerance_seconds * sample_rate as f32).round() as i32;
+        let max_shift_samples = (self.shift_tolerance_seconds * sample_rate as f32).round() as u32;
         let (aligned_expected, aligned_actual, shift_samples) =
             align_samples(expected.samples.clone(), actual.samples.clone(), max_shift_samples);
 
@@ -514,28 +515,139 @@ struct AudioDecoded {
 fn align_samples(
     mut expected: Vec<Vec<f32>>,
     mut actual: Vec<Vec<f32>>,
-    max_shift_samples: i32,
+    max_shift_samples: u32,
 ) -> (Vec<Vec<f32>>, Vec<Vec<f32>>, i32) {
     assert_eq!(expected.len(), actual.len());
-    let best_shift = (-max_shift_samples..=max_shift_samples)
-        .map(|shift| {
-            let score_sum = expected
-                .iter()
-                .zip(actual.iter())
-                .map(|(expected_channel, actual_channel)| {
-                    let (expected_slice, actual_slice) = overlap_slices(expected_channel, actual_channel, shift);
-                    normalized_correlation(expected_slice, actual_slice)
-                })
-                .sum::<f32>();
-            (shift, score_sum)
+    if max_shift_samples == 0 || expected.is_empty() || expected[0].is_empty() || actual[0].is_empty() {
+        let signal_len = expected
+            .iter()
+            .chain(actual.iter())
+            .map(|signal| signal.len())
+            .min()
+            .unwrap_or(0);
+        expected
+            .iter_mut()
+            .chain(actual.iter_mut())
+            .for_each(|signal| signal.truncate(signal_len));
+        return (expected, actual, 0);
+    }
+    let convolution_len = expected
+        .iter()
+        .zip(actual.iter())
+        .map(|(expected, actual)| expected.len() + actual.len())
+        .max()
+        .unwrap();
+    let fft_len = convolution_len.next_power_of_two();
+    let mut planner = FftPlanner::new();
+    let forward = planner.plan_fft_forward(fft_len);
+    let backward = planner.plan_fft_inverse(fft_len);
+    struct CorrelationBuffer {
+        expected_buffer: Vec<Complex<f32>>,
+        actual_buffer: Vec<Complex<f32>>,
+        scratch_buffer: Vec<Complex<f32>>,
+        sums_expected: Vec<f32>,
+        sums_actual: Vec<f32>,
+    }
+    thread_local! {
+        static CORRELATION_BUFFER: RefCell<CorrelationBuffer> = const {
+            RefCell::new(CorrelationBuffer {
+                expected_buffer: Vec::new(),
+                actual_buffer: Vec::new(),
+                scratch_buffer: Vec::new(),
+                sums_expected: Vec::new(),
+                sums_actual: Vec::new(),
+            })
+        };
+    }
+    let correlation = CORRELATION_BUFFER.with(|correlation_buffer| {
+        let mut correlation_buffer = correlation_buffer.borrow_mut();
+        let CorrelationBuffer {
+            expected_buffer,
+            actual_buffer,
+            scratch_buffer,
+            sums_expected,
+            sums_actual,
+        } = &mut *correlation_buffer;
+        expected_buffer.resize(fft_len, Complex::zero());
+        actual_buffer.resize(fft_len, Complex::zero());
+        scratch_buffer.resize(
+            forward
+                .get_inplace_scratch_len()
+                .max(backward.get_inplace_scratch_len()),
+            Complex::zero(),
+        );
+        expected.iter().zip(actual.iter()).fold(
+            vec![0f32; (max_shift_samples * 2 + 1) as usize],
+            |mut acc, (expected, actual)| {
+                sums_expected.clear();
+                sums_actual.clear();
+                sums_expected.extend(
+                    expected
+                        .iter()
+                        .map(|sample| sample * sample)
+                        .chain(iter::once(0f32))
+                        .scan(0f32, |acc, power| Some(mem::replace(acc, *acc + power))),
+                );
+                sums_actual.extend(
+                    actual
+                        .iter()
+                        .map(|sample| sample * sample)
+                        .chain(iter::once(0f32))
+                        .scan(0f32, |acc, power| Some(mem::replace(acc, *acc + power))),
+                );
+
+                expected_buffer.fill(Complex::zero());
+                actual_buffer.fill(Complex::zero());
+                expected_buffer
+                    .iter_mut()
+                    .zip(expected.iter())
+                    .for_each(|(buffer, sample)| *buffer = Complex::from(*sample));
+                actual_buffer
+                    .iter_mut()
+                    .zip(actual.iter().rev())
+                    .for_each(|(buffer, sample)| *buffer = Complex::from(*sample));
+                forward.process_with_scratch(expected_buffer, scratch_buffer);
+                forward.process_with_scratch(actual_buffer, scratch_buffer);
+                expected_buffer
+                    .iter_mut()
+                    .zip(actual_buffer.iter())
+                    .for_each(|(expected, actual)| *expected *= actual);
+                backward.process_with_scratch(expected_buffer, scratch_buffer);
+                acc.iter_mut()
+                    .zip(-(max_shift_samples as i32)..=max_shift_samples as i32)
+                    .for_each(|(acc, shift)| {
+                        let (expected_range, actual_range) = overlap_range(expected.len(), actual.len(), shift);
+                        let denom = ((sums_expected[expected_range.end] - sums_expected[expected_range.start])
+                            * (sums_actual[actual_range.end] - sums_actual[actual_range.start]))
+                            .sqrt()
+                            .max(1e-6);
+                        *acc += usize::try_from(actual.len() as isize - 1 - shift as isize)
+                            .ok()
+                            .and_then(|i| expected_buffer.get(i))
+                            .map_or(f32::INFINITY, |v| v.re / denom);
+                    });
+                acc
+            },
+        )
+    });
+    let (_, best_shift) = correlation
+        .iter()
+        .zip(-(max_shift_samples as i32)..=max_shift_samples as i32)
+        .max_by(|&(&c1, shift1), &(&c2, shift2)| {
+            if (c1 - c2).abs() < f32::EPSILON {
+                shift1.abs().cmp(&shift2.abs()).reverse()
+            } else {
+                c1.partial_cmp(&c2).unwrap()
+            }
         })
-        .min_by(|&(_, score1), &(_, score2)| score1.partial_cmp(&score2).unwrap())
-        .map_or(0, |(shift, _)| shift);
+        .unwrap();
 
     for (expected, actual) in expected.iter_mut().zip(actual.iter_mut()) {
         let (expected_range, actual_range) = overlap_range(expected.len(), actual.len(), best_shift);
         expected.drain(..expected_range.start.min(expected.len()));
         actual.drain(..actual_range.start.min(actual.len()));
+        expected.truncate(expected_range.len());
+        actual.truncate(actual_range.len());
     }
 
     (expected, actual, best_shift)
@@ -577,25 +689,6 @@ fn overlap_range(expected_len: usize, actual_len: usize, shift: i32) -> (Range<u
         let len = actual_len.min(expected_len.saturating_sub(shift));
         (shift..shift + len, 0..len)
     }
-}
-
-fn overlap_slices<'a>(expected: &'a [f32], actual: &'a [f32], shift: i32) -> (&'a [f32], &'a [f32]) {
-    let (expected_range, actual_range) = overlap_range(expected.len(), actual.len(), shift);
-    (&expected[expected_range], &actual[actual_range])
-}
-
-fn normalized_correlation(expected: &[f32], actual: &[f32]) -> f32 {
-    assert_eq!(expected.len(), actual.len());
-    let mut dot = 0.0f32;
-    let mut expected_power = 0.0f32;
-    let mut actual_power = 0.0f32;
-    for (&e, &a) in expected.iter().zip(actual.iter()) {
-        dot += e * a;
-        expected_power += e * e;
-        actual_power += a * a;
-    }
-    let denom = (expected_power.sqrt() * actual_power.sqrt()).max(LOG_EPSILON);
-    dot / denom
 }
 
 fn loudness_db(samples: &[f32]) -> f32 {
