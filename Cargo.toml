@@ -2,6 +2,9 @@
 members = ["crates/*"]
 resolver = "3"
 
+[workspace.metadata.cargo-binaries]
+taplo-cli = "0.10.0"
+
 [workspace.package]
 authors = ["White-Green"]
 edition = "2024"

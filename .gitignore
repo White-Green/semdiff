@@ -9,5 +9,6 @@
 !/LICENSE-Apache
 !/LICENSE-MIT
 !/README.md
+!/renovate.json5
 !/rustfmt.toml
 !/taplo.toml

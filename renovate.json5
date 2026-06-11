@@ -1,0 +1,63 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+
+  extends: ["config:recommended"],
+
+  minimumReleaseAge: "3 days",
+
+  packageRules: [
+    {
+      description: "Group Cargo package patch/minor updates into one PR.",
+      matchManagers: ["cargo"],
+      matchUpdateTypes: ["patch", "minor"],
+      groupName: "Cargo package patch/minor updates",
+      groupSlug: "cargo-package-patch-minor",
+    },
+    {
+      description: "Group binary version pins by binary name, without grouping different binaries together.",
+      matchDepTypes: ["binary"],
+      groupName: "{{{depName}}}",
+      groupSlug: "binary-{{{depName}}}",
+    },
+  ],
+
+  customManagers: [
+    // Cargo-installed binaries pinned in [workspace.metadata.cargo-binaries].
+    {
+      customType: "jsonata",
+      fileFormat: "toml",
+      managerFilePatterns: ["/^Cargo\\.toml$/"],
+      matchStrings: [
+        '$each(workspace.metadata."cargo-binaries", function($version, $name) { {"depName": $name, "currentValue": $version} })',
+      ],
+      datasourceTemplate: "crate",
+      versioningTemplate: "cargo",
+      depTypeTemplate: "binary",
+    },
+
+    // wranglerVersion used by cloudflare/wrangler-action for VRT publishing.
+    {
+      customType: "jsonata",
+      fileFormat: "yaml",
+      managerFilePatterns: ["/^\\.github\\/workflows\\/vrt-report\\.yml$/"],
+      matchStrings: ['{ "depName": "wrangler", "currentValue": env.VRT_WRANGLER_VERSION }'],
+      depNameTemplate: "wrangler",
+      datasourceTemplate: "npm",
+      versioningTemplate: "npm",
+      depTypeTemplate: "binary",
+    },
+
+    // semdiff release tag used by the VRT report workflow.
+    {
+      customType: "jsonata",
+      fileFormat: "yaml",
+      managerFilePatterns: ["/^\\.github\\/workflows\\/vrt-report\\.yml$/"],
+      matchStrings: ['{ "depName": "semdiff", "currentValue": env.SEMDIFF_VERSION }'],
+      depNameTemplate: "semdiff",
+      packageNameTemplate: "White-Green/semdiff",
+      datasourceTemplate: "github-releases",
+      versioningTemplate: "semver",
+      depTypeTemplate: "binary",
+    },
+  ],
+}
