@@ -60,5 +60,18 @@
       versioningTemplate: "semver",
       depTypeTemplate: "binary",
     },
+
+    // ghalint release tag used by the GitHub Actions lint job.
+    {
+      customType: "jsonata",
+      fileFormat: "yaml",
+      managerFilePatterns: ["/^\\.github\\/workflows\\/ci\\.yml$/"],
+      matchStrings: ['{ "depName": "ghalint", "currentValue": jobs."github-actions-lint".env.GHALINT_VERSION }'],
+      depNameTemplate: "ghalint",
+      packageNameTemplate: "suzuki-shunsuke/ghalint",
+      datasourceTemplate: "github-releases",
+      versioningTemplate: "semver",
+      depTypeTemplate: "binary",
+    },
   ],
 }
