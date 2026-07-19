@@ -1134,11 +1134,13 @@ name = "semdiff-core"
 version = "0.4.2"
 dependencies = [
  "infer",
+ "libc",
  "memmap2",
  "mime",
  "mime_guess",
  "rayon",
  "thiserror",
+ "windows-sys",
 ]
 
 [[package]]
