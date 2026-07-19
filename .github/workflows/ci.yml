@@ -124,8 +124,15 @@ jobs:
       - run: cargo clippy --all-targets --all-features --tests -- -D warnings
 
   test:
-    runs-on: ubuntu-latest
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
     permissions:
       contents: read
     steps:
