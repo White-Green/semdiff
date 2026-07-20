@@ -5,7 +5,7 @@ on:
     types: [completed]
 
 env:
-  VRT_WRANGLER_VERSION: "4.111.0"
+  VRT_WRANGLER_VERSION: "4.112.0"
   SEMDIFF_VERSION: "v0.4.2"
 
 jobs:
