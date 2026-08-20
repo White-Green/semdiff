@@ -22,6 +22,37 @@ fn json_diff_marks_changed_value() {
 }
 
 #[test]
+fn json_diff_handles_batched_object_edits() {
+    const MEMBER_COUNT: usize = 512;
+
+    let expected = Value::Object(
+        (0..MEMBER_COUNT)
+            .map(|i| (format!("expected_{i:03}"), json!(i)))
+            .collect(),
+    );
+    let actual = Value::Object(
+        (0..MEMBER_COUNT)
+            .map(|i| (format!("actual_{i:03}"), json!(i)))
+            .collect(),
+    );
+
+    let diff = json_diff(&expected, &actual, &[]);
+
+    assert_eq!(
+        diff.iter()
+            .filter(|line| matches!(line.tag(), ChangeTag::Deleted))
+            .count(),
+        MEMBER_COUNT
+    );
+    assert_eq!(
+        diff.iter()
+            .filter(|line| matches!(line.tag(), ChangeTag::Added))
+            .count(),
+        MEMBER_COUNT
+    );
+}
+
+#[test]
 fn json_diff_handles_nested_structures() {
     let expected = json!({
         "a": 1,
