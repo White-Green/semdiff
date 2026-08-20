@@ -872,104 +872,111 @@ fn json_diff(expected: &Value, actual: &Value, ignore_paths: &[JsonPath]) -> Jso
             type Error = convert::Infallible;
 
             fn equal(&mut self, old_index: usize, new_index: usize, len: usize) -> Result<(), Self::Error> {
-                assert_eq!(len, 1);
-                let need_extra_comma_expected = old_index < self.expected_keys.len() - 1;
-                let need_extra_comma_actual = new_index < self.actual_keys.len() - 1;
-                let k = self.expected_keys[old_index];
-                let expected_v = self.expected.get(k).unwrap();
-                let actual_v = self.actual.get(k).unwrap();
-                let mut expected_state = self.expected_state.advance_name(k).unwrap();
-                let mut actual_state = self.actual_state.advance_name(k).unwrap();
-                if (expected_state.is_match() || actual_state.is_match()) && expected_v != actual_v {
-                    self.writer.ignored_member(
-                        Some((k, expected_v, need_extra_comma_expected)),
-                        Some((k, actual_v, need_extra_comma_actual)),
-                    );
-                    return Ok(());
-                }
-                match (expected_v, actual_v) {
-                    (expected @ Value::Null, actual @ Value::Null)
-                    | (expected @ Value::Bool(_), actual @ Value::Bool(_))
-                    | (expected @ Value::Number(_), actual @ Value::Number(_))
-                    | (expected @ Value::String(_), actual @ Value::String(_))
-                        if expected == actual =>
-                    {
-                        self.writer
-                            .unchanged_member(k, expected, need_extra_comma_expected, need_extra_comma_actual);
-                    }
-                    (Value::Array(expected), Value::Array(actual)) => {
-                        let quoted_key = serde_json::to_string(k).unwrap();
-                        self.writer.unchanged_same_display(MemberContainerStart {
-                            quoted_key: &quoted_key,
-                            delimiter: '[',
-                        });
-                        let mut result = self.writer.indent();
-                        json_array_diff(expected, actual, &mut expected_state, &mut actual_state, &mut result);
-                        self.writer.unchanged_display(
-                            ClosingLine {
-                                delimiter: ']',
-                                trailing_comma: need_extra_comma_expected,
-                            },
-                            ClosingLine {
-                                delimiter: ']',
-                                trailing_comma: need_extra_comma_actual,
-                            },
+                for (expected_index, actual_index) in (old_index..).zip(new_index..).take(len) {
+                    let need_extra_comma_expected = expected_index < self.expected_keys.len() - 1;
+                    let need_extra_comma_actual = actual_index < self.actual_keys.len() - 1;
+                    let k = self.expected_keys[expected_index];
+                    let expected_v = self.expected.get(k).unwrap();
+                    let actual_v = self.actual.get(k).unwrap();
+                    let mut expected_state = self.expected_state.advance_name(k).unwrap();
+                    let mut actual_state = self.actual_state.advance_name(k).unwrap();
+                    if (expected_state.is_match() || actual_state.is_match()) && expected_v != actual_v {
+                        self.writer.ignored_member(
+                            Some((k, expected_v, need_extra_comma_expected)),
+                            Some((k, actual_v, need_extra_comma_actual)),
                         );
+                        continue;
                     }
-                    (Value::Object(expected), Value::Object(actual)) => {
-                        let quoted_key = serde_json::to_string(k).unwrap();
-                        self.writer.unchanged_same_display(MemberContainerStart {
-                            quoted_key: &quoted_key,
-                            delimiter: '{',
-                        });
-                        let mut result = self.writer.indent();
-                        json_object_diff(expected, actual, &mut expected_state, &mut actual_state, &mut result);
-                        self.writer.unchanged_display(
-                            ClosingLine {
-                                delimiter: '}',
-                                trailing_comma: need_extra_comma_expected,
-                            },
-                            ClosingLine {
-                                delimiter: '}',
-                                trailing_comma: need_extra_comma_actual,
-                            },
-                        );
-                    }
-                    _ => {
-                        drop(expected_state);
-                        drop(actual_state);
-                        self.delete(old_index, 1, 0)?;
-                        self.insert(0, new_index, 1)?;
+                    match (expected_v, actual_v) {
+                        (expected @ Value::Null, actual @ Value::Null)
+                        | (expected @ Value::Bool(_), actual @ Value::Bool(_))
+                        | (expected @ Value::Number(_), actual @ Value::Number(_))
+                        | (expected @ Value::String(_), actual @ Value::String(_))
+                            if expected == actual =>
+                        {
+                            self.writer.unchanged_member(
+                                k,
+                                expected,
+                                need_extra_comma_expected,
+                                need_extra_comma_actual,
+                            );
+                        }
+                        (Value::Array(expected), Value::Array(actual)) => {
+                            let quoted_key = serde_json::to_string(k).unwrap();
+                            self.writer.unchanged_same_display(MemberContainerStart {
+                                quoted_key: &quoted_key,
+                                delimiter: '[',
+                            });
+                            let mut result = self.writer.indent();
+                            json_array_diff(expected, actual, &mut expected_state, &mut actual_state, &mut result);
+                            self.writer.unchanged_display(
+                                ClosingLine {
+                                    delimiter: ']',
+                                    trailing_comma: need_extra_comma_expected,
+                                },
+                                ClosingLine {
+                                    delimiter: ']',
+                                    trailing_comma: need_extra_comma_actual,
+                                },
+                            );
+                        }
+                        (Value::Object(expected), Value::Object(actual)) => {
+                            let quoted_key = serde_json::to_string(k).unwrap();
+                            self.writer.unchanged_same_display(MemberContainerStart {
+                                quoted_key: &quoted_key,
+                                delimiter: '{',
+                            });
+                            let mut result = self.writer.indent();
+                            json_object_diff(expected, actual, &mut expected_state, &mut actual_state, &mut result);
+                            self.writer.unchanged_display(
+                                ClosingLine {
+                                    delimiter: '}',
+                                    trailing_comma: need_extra_comma_expected,
+                                },
+                                ClosingLine {
+                                    delimiter: '}',
+                                    trailing_comma: need_extra_comma_actual,
+                                },
+                            );
+                        }
+                        _ => {
+                            drop(expected_state);
+                            drop(actual_state);
+                            self.delete(expected_index, 1, 0)?;
+                            self.insert(0, actual_index, 1)?;
+                        }
                     }
                 }
                 Ok(())
             }
 
             fn delete(&mut self, old_index: usize, old_len: usize, _new_index: usize) -> Result<(), Self::Error> {
-                assert_eq!(old_len, 1);
-                let need_extra_comma = old_index < self.expected.len() - 1;
-                let k = self.expected_keys[old_index];
-                let v = self.expected.get(k).unwrap();
-                let expected_state = self.expected_state.advance_name(k).unwrap();
-                if expected_state.is_match() {
-                    self.writer.ignored_member(Some((k, v, need_extra_comma)), None);
-                    return Ok(());
+                for i in (old_index..).take(old_len) {
+                    let need_extra_comma = i < self.expected.len() - 1;
+                    let k = self.expected_keys[i];
+                    let v = self.expected.get(k).unwrap();
+                    let expected_state = self.expected_state.advance_name(k).unwrap();
+                    if expected_state.is_match() {
+                        self.writer.ignored_member(Some((k, v, need_extra_comma)), None);
+                        continue;
+                    }
+                    self.writer.deleted_member(k, v, need_extra_comma);
                 }
-                self.writer.deleted_member(k, v, need_extra_comma);
                 Ok(())
             }
 
             fn insert(&mut self, _old_index: usize, new_index: usize, new_len: usize) -> Result<(), Self::Error> {
-                assert_eq!(new_len, 1);
-                let need_extra_comma = new_index < self.actual.len() - 1;
-                let k = self.actual_keys[new_index];
-                let v = self.actual.get(k).unwrap();
-                let actual_state = self.actual_state.advance_name(k).unwrap();
-                if actual_state.is_match() {
-                    self.writer.ignored_member(None, Some((k, v, need_extra_comma)));
-                    return Ok(());
+                for i in (new_index..).take(new_len) {
+                    let need_extra_comma = i < self.actual.len() - 1;
+                    let k = self.actual_keys[i];
+                    let v = self.actual.get(k).unwrap();
+                    let actual_state = self.actual_state.advance_name(k).unwrap();
+                    if actual_state.is_match() {
+                        self.writer.ignored_member(None, Some((k, v, need_extra_comma)));
+                        continue;
+                    }
+                    self.writer.added_member(k, v, need_extra_comma);
                 }
-                self.writer.added_member(k, v, need_extra_comma);
                 Ok(())
             }
 
