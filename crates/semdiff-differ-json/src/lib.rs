@@ -979,16 +979,6 @@ fn json_diff(expected: &Value, actual: &Value, ignore_paths: &[JsonPath]) -> Jso
                 }
                 Ok(())
             }
-
-            fn replace(
-                &mut self,
-                _old_index: usize,
-                _old_len: usize,
-                _new_index: usize,
-                _new_len: usize,
-            ) -> Result<(), Self::Error> {
-                unreachable!()
-            }
         }
     }
     let mut expected_matcher = JsonPathMatcher::new(ignore_paths);
