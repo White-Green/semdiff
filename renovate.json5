@@ -65,6 +65,19 @@
       depTypeTemplate: "binary",
     },
 
+    // actionlint version pinned in the GitHub Actions lint workflow.
+    {
+      customType: "regex",
+      managerFilePatterns: ["/^\\.github/workflows/ci\\.yml$/"],
+      matchStrings: [
+        "ACTIONLINT_VERSION:\\s*(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
+      ],
+      depNameTemplate: "rhysd/actionlint",
+      datasourceTemplate: "github-releases",
+      versioningTemplate: "semver",
+      depTypeTemplate: "binary",
+    },
+
     // ghalint release tag used by the GitHub Actions lint job.
     {
       customType: "jsonata",
