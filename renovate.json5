@@ -86,8 +86,8 @@
         "/^\\.github\\/(?:workflows|actions)\\/.+\\.ya?ml$/",
       ],
       matchStrings: [
-        'jobs.*.steps[$type(uses) = "string" and $startsWith(uses, "dtolnay/rust-toolchain@") and $length($substringAfter(uses, "@")) = 40].{"currentDigest": $substringAfter(uses, "@")}',
-        'runs.steps[$type(uses) = "string" and $startsWith(uses, "dtolnay/rust-toolchain@") and $length($substringAfter(uses, "@")) = 40].{"currentDigest": $substringAfter(uses, "@")}',
+        'jobs.*.steps[$type(uses) = "string" and $contains(uses, /^dtolnay\\/rust-toolchain@[0-9a-f]{40}$/)].{"currentDigest": $substringAfter(uses, "@")}',
+        'runs.steps[$type(uses) = "string" and $contains(uses, /^dtolnay\\/rust-toolchain@[0-9a-f]{40}$/)].{"currentDigest": $substringAfter(uses, "@")}',
       ],
       depNameTemplate: "dtolnay/rust-toolchain",
       packageNameTemplate: "dtolnay/rust-toolchain",
