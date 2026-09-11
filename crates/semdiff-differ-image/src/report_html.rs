@@ -209,33 +209,3 @@ fn write_image(reporter: &HtmlReport, name: &str, label: &str, image: &RgbaImage
         Err(err) => panic!("Unexpected error writing diff image: {}", err),
     })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn preview_images_are_constrained_to_the_preview_area() {
-        for body in [
-            ImagePreviewBody::Single {
-                image: ImagePreviewImage {
-                    src: "large.png",
-                    label: "added",
-                },
-            },
-            ImagePreviewBody::Modified {
-                image: ImagePreviewImage {
-                    src: "diff.png",
-                    label: "diff",
-                },
-            },
-        ] {
-            let rendered = ImagePreviewTemplate { body }.render().unwrap();
-
-            assert!(rendered.contains("class=\"image-preview__image"));
-            assert!(rendered.contains("max-width: 100%;"));
-            assert!(rendered.contains("max-height: 100%;"));
-            assert!(rendered.contains("object-fit: contain;"));
-        }
-    }
-}

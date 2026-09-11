@@ -17,7 +17,8 @@
     background: var(--status-neutral-surface);
   }
 
-  .image-preview__image {
+  .image-preview > img,
+  .image-preview .tint__img {
     max-width: 100%;
     max-height: 100%;
     width: 100%;
@@ -30,9 +31,9 @@
   {% match self.body %}
   {% when ImagePreviewBody::Modified with { image } %}
   <span class="tint tint--image-diff">
-    <img class="image-preview__image tint__img" src="{{ image.src }}" alt="{{ image.label }} image" />
+    <img class="tint__img" src="{{ image.src }}" alt="{{ image.label }} image" />
   </span>
   {% when ImagePreviewBody::Single with { image } %}
-  <img class="image-preview__image" src="{{ image.src }}" alt="{{ image.label }} image" />
+  <img src="{{ image.src }}" alt="{{ image.label }} image" />
   {% endmatch %}
 </div>
