@@ -6,7 +6,7 @@ on:
 
 env:
   VRT_WRANGLER_VERSION: "4.131.0"
-  SEMDIFF_VERSION: "v0.5.0"
+  SEMDIFF_VERSION: "v0.5.1"
 
 jobs:
   publish_baseline:
