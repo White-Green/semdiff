@@ -64,6 +64,7 @@ serde = { default-features = false, features = [
 ], version = "1.0.229" }
 serde_json = { default-features = false, features = [
   "preserve_order",
+  "std",
 ], version = "1.0.151" }
 similar = { default-features = false, features = [
   "bytes",
