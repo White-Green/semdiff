@@ -90,24 +90,5 @@
       versioningTemplate: "semver",
       depTypeTemplate: "binary",
     },
-
-    // Keep the hash-pinned dtolnay/rust-toolchain action on the master branch.
-    {
-      customType: "jsonata",
-      fileFormat: "yaml",
-      managerFilePatterns: [
-        "/^\\.github\\/(?:workflows|actions)\\/.+\\.ya?ml$/",
-      ],
-      matchStrings: [
-        'jobs.*.steps[$type(uses) = "string" and $contains(uses, /^dtolnay\\/rust-toolchain@[0-9a-f]{40}$/)].{"currentDigest": $substringAfter(uses, "@")}',
-        'runs.steps[$type(uses) = "string" and $contains(uses, /^dtolnay\\/rust-toolchain@[0-9a-f]{40}$/)].{"currentDigest": $substringAfter(uses, "@")}',
-      ],
-      depNameTemplate: "dtolnay/rust-toolchain",
-      packageNameTemplate: "dtolnay/rust-toolchain",
-      currentValueTemplate: "master",
-      datasourceTemplate: "github-digest",
-      versioningTemplate: "exact",
-      depTypeTemplate: "action",
-    },
   ],
 }

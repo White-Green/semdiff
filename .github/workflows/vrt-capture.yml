@@ -14,16 +14,16 @@ jobs:
       contents: read
       statuses: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
       - id: rust-toolchain
-        uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
 
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - uses: actions/cache@v6.1.0
         with:
           path: |
             ~/.cargo/bin/
@@ -34,7 +34,7 @@ jobs:
           restore-keys: |
             ${{ github.event_name == 'pull_request' && format('rust-{0}-cargo-', runner.os) }}
 
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - uses: actions/cache@v6.1.0
         with:
           path: target
           key: ${{ format('rust-{0}-target-vrt-{1}-{2}', runner.os, steps.rust-toolchain.outputs.cachekey, hashFiles('Cargo.lock')) }}
@@ -45,12 +45,12 @@ jobs:
 
       - run: bash ./.github/scripts/capture_vrt_data.sh
 
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: vrt-data
           path: data
 
-      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      - uses: actions/github-script@v9.0.0
         env:
           SUCCESSOR_NAME: ${{ github.event_name == 'pull_request' && 'pr_checks' || 'publish_baseline' }}
         with:
