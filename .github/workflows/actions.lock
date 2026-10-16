@@ -87,7 +87,7 @@ dependencies:
         repo_id: 213471363
     'dtolnay/rust-toolchain@master':
         ref: 'master'
-        commit: 'sha1-e2a55d2ffb04f378e9626c28d38b36d230d1e12f'
+        commit: 'sha1-7e38f4b43b4db5c8dd498af069a4f6196df1d067'
         owner_id: 1940490
         repo_id: 260749683
     'github/codeql-action@cdf488f595d80d6e07e03d4674febd5ab45fa938':
