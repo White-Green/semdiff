@@ -65,7 +65,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    if: github.actor == 'White-Green'
+    environment: release
     needs: build_binary
     runs-on: ubuntu-latest
     timeout-minutes: 10
